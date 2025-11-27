@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <title>Home - Transparece.io</title>
+</head>
+  <style>
+
+    body {
+      background-color: #f8f9fa;
+    }
+
+    /* --- Cards de areas
+    .card-cover {
+      background-color: #343a40; /* Fallback color */
+      background-size: cover;
+      background-position: center;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    .card-cover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
+    }
+
+    /* Efeito de gradiente dos cards */
+    .bg-gradient-receita { background: linear-gradient(135deg, #198754 0%, #20c997 100%); }
+    .bg-gradient-despesa { background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); }
+    .bg-gradient-invest { background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%); }
+    </style>
+<body>
+<section id="header">
+  <header>
+    <div class="px-3 py-2 text-bg-dark border-bottom">
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+          <div class="d-flex align-items-center text-white">
+            <i class="bi bi-coin fs-3 me-2"></i>
+            <h2 class="mb-0 text-white">Transparece.io</h2>
+          </div>
+
+          <ul class="nav my-2 text-small">
+            <li>
+              <a href="/" class="nav-link text-secondary text-center">
+                Inicio
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('apresente') }}" class="nav-link text-white text-center">
+                Apresentação
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('receitas') }}" class="nav-link text-white text-center">
+                Receitas
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('despesas') }}" class="nav-link text-white text-center">
+                Despesas
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('invest') }}" class="nav-link text-white text-center">
+                Investimentos
+              </a>
+            </li>
+            <li>
+              <div class="text-end">
+                <a href="{{ url_for('sobre') }}" class="text-white text-decoration-none" title="Sobre nós">
+                <i class="bi bi-question-lg fs-4"></i>
+                </a>
+              </div>
+            </li>
+          </ul>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+</section>
+
+<section id="title" style="background-color: #333333; color: #ffffff;">
+  <div class="container px-4 py-5">
+    <div class="row align-items-center g-5 py-5">
+      <div class="col-lg-8 mx-auto text-center">
+
+        <h1 class="display-3 fw-bold text-white lh-1 mb-3">Projeto de Informatização</h1>
+        <hr class="my-4 border-light opacity-50">
+        <p class="lead mb-4">
+          A informatização de uma Unidade de Informação.
+          <br>
+          Recorte do Portal da Transparência
+        </p>
+
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+          <a href="#objective" class="btn btn-primary btn-lg px-4 gap-3">Objetivo</a>
+          <a href="{{ url_for('sobre') }}" class="btn btn-outline-secondary btn-lg px-4">Sobre Nós</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="objective">
+    <div class="px-4 pt-5 my-5 text-center border-bottom">
+      <h1 class="display-3 fw-bold text-body-emphasis">Objetivo deste Projeto</h1>
+      <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">A informatização simplifica a busca por dados e fortalece o entendimento sobre o ciclo de uso dos recursos públicos.
+Os resultados poderão trazer ganhos em clareza e facilidade de acesso, evidenciando como a modelagem informacional pode transformar dados desconexos em conhecimento estruturado e socialmente útil.
+        </p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mb-5">
+          <a href="#Sections" class="btn btn-primary btn-lg px-4 me-sm-3">Fluxo Orçamentário</a>
+        </div>
+      </div>
+    </div>
+</section>
+
+<section id="Sections" style="background-color: #1c1c1c;" class="pb-5">
+  <div class="container mb-5">
+    <h3 class="pb-2 border-bottom text-white mb-4 display-5">Áreas de Análise</h3>
+
+    <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4">
+
+      <div class="col">
+        <div class="card card-cover h-100 overflow-hidden rounded-4 text-white bg-gradient-receita shadow-lg position-relative">
+          <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+            <h3 class="pt-5 mt-5 mb-4 fs-2 lh-1 fw-bold text-nowrap">Receitas</h3>
+            <ul class="d-flex list-unstyled mt-auto">
+              <li class="me-auto"><i class="bi bi-graph-up-arrow fs-2"></i></li>
+              <li class="d-flex align-items-center">
+                <small class="fw-bold"><a href="{{ url_for('receitas') }}" class="stretched-link text-white text-decoration-none">Ver Painel</a> <i class="bi bi-arrow-right"></i></small>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card card-cover h-100 overflow-hidden rounded-4 text-white bg-gradient-despesa shadow-lg position-relative">
+          <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+            <h3 class="pt-5 mt-5 mb-4 fs-2 lh-1 fw-bold text-nowrap">Despesas</h3>
+            <ul class="d-flex list-unstyled mt-auto">
+              <li class="me-auto"><i class="bi bi-wallet2 fs-2"></i></li>
+              <li class="d-flex align-items-center">
+                <small class="fw-bold"><a href="{{ url_for('despesas') }}" class="stretched-link text-white text-decoration-none">Ver Painel</a> <i class="bi bi-arrow-right"></i></small>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card card-cover h-100 overflow-hidden rounded-4 text-white bg-gradient-invest shadow-lg position-relative">
+          <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
+            <h3 class="pt-5 mt-5 mb-4 fs-2 lh-1 fw-bold text-nowrap">Investimentos</h3>
+            <ul class="d-flex list-unstyled mt-auto">
+              <li class="me-auto"><i class="bi bi-buildings fs-2"></i></li>
+              <li class="d-flex align-items-center">
+                <small class="fw-bold"><a href="{{ url_for('invest') }}" class="stretched-link text-white text-decoration-none">Ver Painel</a> <i class="bi bi-arrow-right"></i></small>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="d-flex justify-content-center border-bottom border-secondary mb-5 pb-4">
+      <a href="{{ url_for('apresente') }}" class="btn btn-outline-light btn-lg px-5 rounded-0">Explorar a metodologia</a>
+    </div>
+  </div>
+
+</section>
+
+<section id="footer">
+  <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
+    <p class="col-md-4 mb-0 text-body-secondary">© 2025 Jpebecker, Bootstrap</p>
+
+    <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none" aria-label="Bootstrap">
+      <i class="bi bi-bootstrap fs-2"></i>
+    </a>
+
+    <ul class="nav col-md-4 justify-content-end">
+      <li class="nav-item"><a href="#header" class="nav-link px-2 text-body-secondary">Início</a></li>
+      <li class="nav-item"><a href="{{ url_for('sobre') }}" class="nav-link px-2 text-body-secondary">Sobre nós</a></li>
+    </ul>
+  </footer>
+</section>
+</body>
+</html>

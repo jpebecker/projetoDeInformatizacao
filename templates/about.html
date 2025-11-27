@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <title>Sobre Nós - Transparece.io</title>
+</head>
+
+<body>
+<section id="header">
+  <header>
+    <div class="px-3 py-2 text-bg-dark border-bottom">
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+          <div class="d-flex align-items-center text-white">
+            <i class="bi bi-coin fs-3 me-2"></i>
+            <h2 class="mb-0 text-white">Transparece.io</h2>
+          </div>
+
+          <ul class="nav my-2 text-small">
+            <li>
+              <a href="{{ url_for('home') }}" class="nav-link text-white text-center">
+                Inicio
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('apresente') }}" class="nav-link text-white text-center">
+                Apresentação
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('receitas') }}" class="nav-link text-white text-center">
+                Receitas
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('despesas') }}" class="nav-link text-white text-center">
+                Despesas
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('invest') }}" class="nav-link text-white text-center">
+                Investimentos
+              </a>
+            </li>
+            <li>
+              <div class="text-end">
+                <a href="{{ url_for('sobre') }}" class="text-secondary text-decoration-none" title="Sobre nós">
+                <i class="bi bi-question-lg fs-4"></i></a>
+              </div>
+            </li>
+          </ul>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+</section>
+
+<section id="about-hero" style="background-color: #333333; color: #ffffff;">
+  <div class="container px-4 py-5">
+    <div class="row align-items-center g-5 py-5">
+      <div class="col-lg-8 mx-auto text-center">
+        <h1 class="display-5 fw-bold text-white lh-1 mb-3">Sobre o Projeto</h1>
+        <hr class="my-4 border-light opacity-50">
+        <p class="lead mb-4">
+          Informatização do Fluxo de Dados Financeiros Públicos: Receita, Despesa e Investimento.
+        </p>
+        <p class="fs-5 text-light opacity-75">
+          Trabalho final desenvolvido no exercício da disciplina CIN7405 - Projeto de Informatização da Universidade Federal de Santa Catarina (UFSC).
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="context">
+    <div class="container px-4 py-5">
+      <div class="row featurette">
+        <div class="col-md-7">
+          <h2 class="featurette-heading fw-normal lh-1">O Problema: <span class="text-body-secondary">Complexidade na navegação.</span></h2>
+          <p class="lead mt-3">Apesar de o Portal da Transparência disponibilizar um grande volume de dados, a complexidade da navegação
+              e a dispersão das informações dificultam a compreensão e a apropriação desses dados pelo cidadão comum.</p>
+          <p>Este trabalho propõe uma modelagem e um protótipo de informatização que integrem o fluxo informacional entre
+              receita arrecadada, despesa gasta e contratos de licitações.</p>
+        </div>
+        <div class="col-md-5 d-flex align-items-center justify-content-center">
+            <i class="bi bi-diagram-3 text-secondary" style="font-size: 10rem;"></i>
+        </div>
+      </div>
+    </div>
+</section>
+
+<div class="container">
+    <hr class="featurette-divider">
+</div>
+
+<section id="methodology">
+    <div class="container px-4 py-5">
+      <div class="row featurette">
+        <div class="col-md-5 order-md-1 d-flex align-items-center justify-content-center">
+             <i class="bi bi-code-slash text-primary" style="font-size: 10rem;"></i>
+        </div>
+        <div class="col-md-7 order-md-2">
+          <h2 class="featurette-heading fw-normal lh-1">Nossa Solução: <span class="text-body-secondary">Tecnologia aplicada.</span></h2>
+          <p class="lead mt-3">Utilizamos a linguagem de programação <strong>Python</strong> e bibliotecas de requisição virtual
+              (requests em ETL) junto com a integração à API do portal da transparência.</p>
+          <p>O modelo organiza as informações em uma única interface, permitindo navegação intuitiva e
+              visualização integrada dos dados do governo federal.</p>
+        </div>
+      </div>
+    </div>
+</section>
+
+<section id="team" class="py-5" style="background-color: #1c1c1c;">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="display-6 fw-bold text-white">Nossa Equipe</h2>
+      <p class="text-white-50">Estudantes responsáveis pelo desenvolvimento.</p>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+
+          <div class="col">
+            <div class="card h-100 border-0 shadow-sm py-3">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title fs-5 mb-1">Artur Valenza Batinga</h5>
+                <p class="card-text text-muted small text-uppercase fw-semibold">Ciência da Informação</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="card h-100 border-0 shadow-sm py-3">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title fs-5 mb-1">Eduardo Jaime José</h5>
+                <p class="card-text text-muted small text-uppercase fw-semibold">Arquivologia</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="card h-100 border-0 shadow-sm py-3">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title fs-5 mb-1">João Pedro Becker Schneider</h5>
+                <p class="card-text text-muted small text-uppercase fw-semibold">Ciência da Informação</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="card h-100 border-0 shadow-sm py-3">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title fs-5 mb-1">Thiago Bianchetti Aguirre</h5>
+                <p class="card-text text-muted small text-uppercase fw-semibold">Ciência da Informação</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section id="footer">
+  <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top container">
+    <p class="col-md-4 mb-0 text-body-secondary">© 2025 Jpebecker, Bootstrap</p>
+
+    <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none" aria-label="Bootstrap">
+      <i class="bi bi-bootstrap fs-2"></i>
+    </a>
+
+    <ul class="nav col-md-4 justify-content-end">
+      <li class="nav-item"><a href="{{ url_for('home') }}" class="nav-link px-2 text-body-secondary">Início</a></li>
+      <li class="nav-item"><a href="{{ url_for('sobre') }}" class="nav-link px-2 text-body-secondary">Sobre nós</a></li>
+    </ul>
+  </footer>
+</section>
+
+</body>
+</html>
