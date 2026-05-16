@@ -1,191 +1,251 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+{% extends "base.html" %}
+{% set active_page = 'about' %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block title %}Sobre — FiscalBR{% endblock %}
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% block head %}
+<style>
+  .about-hero {
+    background: #111;
+    color: #fff;
+    padding: 5rem 0 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .about-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 70% 50%, rgba(13,110,253,0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
 
-  <title>Sobre Nós - Transparece.io</title>
-</head>
+  .tech-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: #f1f3f5;
+    border-radius: 6px;
+    padding: .35rem .75rem;
+    font-size: .82rem;
+    font-weight: 500;
+    color: #495057;
+  }
 
-<body>
-<section id="header">
-  <header>
-    <div class="px-3 py-2 text-bg-dark border-bottom">
-      <div class="container">
-        <div class="d-flex flex-wrap align-items-center justify-content-between">
-          <div class="d-flex align-items-center text-white">
-            <i class="bi bi-coin fs-3 me-2"></i>
-            <h2 class="mb-0 text-white">Transparece.io</h2>
-          </div>
+  .timeline-item {
+    position: relative;
+    padding-left: 2rem;
+    padding-bottom: 2rem;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #0d6efd;
+  }
+  .timeline-item::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 18px;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+  }
+  .timeline-item:last-child::after { display: none; }
+  .timeline-item:last-child { padding-bottom: 0; }
 
-          <ul class="nav my-2 text-small">
-            <li>
-              <a href="{{ url_for('home') }}" class="nav-link text-white text-center">
-                Inicio
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('apresente') }}" class="nav-link text-white text-center">
-                Apresentação
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('receitas') }}" class="nav-link text-white text-center">
-                Receitas
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('despesas') }}" class="nav-link text-white text-center">
-                Despesas
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('invest') }}" class="nav-link text-white text-center">
-                Investimentos
-              </a>
-            </li>
-            <li>
-              <div class="text-end">
-                <a href="{{ url_for('sobre') }}" class="text-secondary text-decoration-none" title="Sobre nós">
-                <i class="bi bi-question-lg fs-4"></i></a>
-              </div>
-            </li>
-          </ul>
+  .contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    text-decoration: none;
+    color: #495057;
+    font-size: .9rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: .55rem 1rem;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .contact-link:hover {
+    border-color: #0d6efd;
+    color: #0d6efd;
+    background: #f0f5ff;
+  }
 
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-</section>
+  .section-divider { border-color: #e9ecef; margin: 3rem 0; }
+</style>
+{% endblock %}
 
-<section id="about-hero" style="background-color: #333333; color: #ffffff;">
-  <div class="container px-4 py-5">
-    <div class="row align-items-center g-5 py-5">
-      <div class="col-lg-8 mx-auto text-center">
-        <h1 class="display-5 fw-bold text-white lh-1 mb-3">Sobre o Projeto</h1>
-        <hr class="my-4 border-light opacity-50">
-        <p class="lead mb-4">
-          Informatização do Fluxo de Dados Financeiros Públicos: Receita, Despesa e Investimento.
+{% block content %}
+
+<!-- ================================================================
+     HERO
+================================================================ -->
+<section class="about-hero">
+  <div class="container position-relative">
+    <div class="row">
+      <div class="col-lg-7">
+        <p class="text-primary-emphasis mb-2" style="font-size:.85rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#6ea8fe !important;">
+          Sobre o projeto
         </p>
-        <p class="fs-5 text-light opacity-75">
-          Trabalho final desenvolvido no exercício da disciplina CIN7405 - Projeto de Informatização da Universidade Federal de Santa Catarina (UFSC).
+        <h1 class="display-5 fw-bold mb-3">FiscalBR</h1>
+        <p class="lead" style="color:rgba(255,255,255,.65); max-width:55ch;">
+          Uma ferramenta de visualização de dados fiscais públicos, construída
+          com Python e Flask, cobrindo receitas, despesas e investimentos
+          do governo federal e do estado de Santa Catarina.
         </p>
       </div>
     </div>
   </div>
 </section>
 
-<section id="context">
-    <div class="container px-4 py-5">
-      <div class="row featurette">
-        <div class="col-md-7">
-          <h2 class="featurette-heading fw-normal lh-1">O Problema: <span class="text-body-secondary">Complexidade na navegação.</span></h2>
-          <p class="lead mt-3">Apesar de o Portal da Transparência disponibilizar um grande volume de dados, a complexidade da navegação
-              e a dispersão das informações dificultam a compreensão e a apropriação desses dados pelo cidadão comum.</p>
-          <p>Este trabalho propõe uma modelagem e um protótipo de informatização que integrem o fluxo informacional entre
-              receita arrecadada, despesa gasta e contratos de licitações.</p>
+<!-- ================================================================
+     MAIN CONTENT
+================================================================ -->
+<div class="container py-5">
+  <div class="row g-5">
+
+    <!-- LEFT COLUMN -->
+    <div class="col-lg-7">
+
+      <!-- Origin -->
+      <h4 class="fw-bold mb-3">Origem do projeto</h4>
+      <div class="timeline-item">
+        <p class="fw-semibold mb-1">2025 — Trabalho acadêmico</p>
+        <p class="text-muted small mb-0">
+          O projeto nasceu como trabalho final da disciplina
+          <strong>CIN7405 — Projeto de Informatização</strong>
+          da Universidade Federal de Santa Catarina (UFSC). O objetivo era
+          propor uma informatização de um fluxo informacional real. A escolha
+          foi o Portal da Transparência: dados públicos, volume elevado,
+          navegação complexa. A solução encurtou o caminho entre os dados
+          brutos e a compreensão do cidadão.
+        </p>
+      </div>
+
+      <div class="timeline-item">
+        <p class="fw-semibold mb-1">2025–{{ current_year }} — Evolução para portfólio</p>
+        <p class="text-muted small mb-0">
+          Após a entrega acadêmica, o projeto foi reestruturado como portfólio
+          pessoal de desenvolvimento. As principais adições foram: suporte a
+          múltiplos anos (série histórica), endpoints AJAX para troca de dados
+          sem reload, script de backfill histórico e refatoração completa da
+          arquitetura de templates.
+        </p>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- How it was built -->
+      <h4 class="fw-bold mb-3">Como foi construído</h4>
+      <p class="text-muted">
+        O pipeline ETL coleta dados diretamente das APIs do Portal da Transparência
+        federal e do portal de Santa Catarina. Os arquivos são processados com
+        <strong>pandas</strong>, agregados por categoria e salvos em JSONs anuais.
+        O Flask serve os dashboards com Chart.js, com troca de ano e esfera
+        via chamadas AJAX — sem recarregar a página.
+      </p>
+      <p class="text-muted">
+        Para coleta histórica, um script separado (<code>collect_history.py</code>)
+        aceita um intervalo de anos por linha de comando e preenche o acervo local
+        respeitando um throttle entre requisições. Arquivos já existentes são
+        ignorados por padrão.
+      </p>
+
+      <hr class="section-divider">
+
+      <!-- Stack -->
+      <h4 class="fw-bold mb-3">Tecnologias</h4>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="tech-badge"><i class="bi bi-filetype-py text-warning"></i> Python 3</span>
+        <span class="tech-badge"><i class="bi bi-capsule text-success"></i> Flask</span>
+        <span class="tech-badge"><i class="bi bi-table text-info"></i> pandas</span>
+        <span class="tech-badge"><i class="bi bi-bar-chart text-primary"></i> Chart.js</span>
+        <span class="tech-badge"><i class="bi bi-bootstrap text-purple"></i> Bootstrap 5</span>
+        <span class="tech-badge"><i class="bi bi-filetype-json text-secondary"></i> JSON storage</span>
+        <span class="tech-badge"><i class="bi bi-cloud-download text-danger"></i> requests</span>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-lg-4 offset-lg-1">
+
+      <!-- Author card -->
+      <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center"
+               style="width:52px; height:52px; flex-shrink:0;">
+            <i class="bi bi-person-fill text-white fs-4"></i>
+          </div>
+          <div>
+            <!-- PREENCHA: seu nome completo -->
+            <h5 class="mb-0 fw-bold">João Pedro Becker Schneider</h5>
+            <!-- PREENCHA: sua descrição (ex: "Estudante de Ciência da Informação — UFSC") -->
+            <p class="text-muted small mb-0">Ciência da Informação — UFSC</p>
+          </div>
         </div>
-        <div class="col-md-5 d-flex align-items-center justify-content-center">
-            <i class="bi bi-diagram-3 text-secondary" style="font-size: 10rem;"></i>
+
+        <!-- PREENCHA: uma frase curta sobre você / motivação -->
+        <p class="text-muted small">
+          Interessado na intersecção entre dados, tecnologia e acesso à informação pública.
+          Este projeto é parte do meu portfólio de desenvolvimento pessoal.
+        </p>
+
+        <hr>
+
+        <!-- Contact links — preencha os hrefs -->
+        <div class="d-flex flex-column gap-2">
+
+          <!-- GitHub -->
+          <a href="https://github.com/jpebecker" target="_blank" rel="noopener" class="contact-link">
+            <i class="bi bi-github fs-5"></i>
+            <span>GitHub</span>
+          </a>
+
+          <!-- LinkedIn -->
+          <a href="https://linkedin.com/in/jpebecker" target="_blank" rel="noopener" class="contact-link">
+            <i class="bi bi-linkedin fs-5 text-primary"></i>
+            <span>LinkedIn</span>
+          </a>
+
+          <!-- E-mail (opcional) -->
+          <a href="mailto:jpebecker@gmail.com" class="contact-link">
+            <i class="bi bi-envelope fs-5 text-secondary"></i>
+            <span>E-mail</span>
+          </a>
+
         </div>
       </div>
-    </div>
-</section>
 
-<div class="container">
-    <hr class="featurette-divider">
+      <!-- Data sources -->
+      <div class="card border-0 bg-light rounded-4 p-4">
+        <h6 class="fw-bold mb-3">Fontes de dados</h6>
+        <div class="d-flex flex-column gap-2">
+          <a href="https://portaldatransparencia.gov.br" target="_blank" rel="noopener"
+             class="contact-link">
+            <i class="bi bi-globe2 text-success"></i>
+            <span>Portal da Transparência Federal</span>
+          </a>
+          <a href="https://transparencia.sc.gov.br" target="_blank" rel="noopener"
+             class="contact-link">
+            <i class="bi bi-globe2 text-primary"></i>
+            <span>Portal da Transparência — SC</span>
+          </a>
+        </div>
+        <p class="text-muted small mt-3 mb-0">
+          Todos os dados são públicos e disponibilizados pelos respectivos
+          portais governamentais. O FiscalBR não produz nem modifica os dados,
+          apenas os coleta, processa e exibe.
+        </p>
+      </div>
+
+    </div>
+  </div>
 </div>
 
-<section id="methodology">
-    <div class="container px-4 py-5">
-      <div class="row featurette">
-        <div class="col-md-5 order-md-1 d-flex align-items-center justify-content-center">
-             <i class="bi bi-code-slash text-primary" style="font-size: 10rem;"></i>
-        </div>
-        <div class="col-md-7 order-md-2">
-          <h2 class="featurette-heading fw-normal lh-1">Nossa Solução: <span class="text-body-secondary">Tecnologia aplicada.</span></h2>
-          <p class="lead mt-3">Utilizamos a linguagem de programação <strong>Python</strong> e bibliotecas de requisição virtual
-              (requests em ETL) junto com a integração à API do portal da transparência.</p>
-          <p>O modelo organiza as informações em uma única interface, permitindo navegação intuitiva e
-              visualização integrada dos dados do governo federal.</p>
-        </div>
-      </div>
-    </div>
-</section>
-
-<section id="team" class="py-5" style="background-color: #1c1c1c;">
-  <div class="container">
-    <div class="text-center mb-5">
-      <h2 class="display-6 fw-bold text-white">Nossa Equipe</h2>
-      <p class="text-white-50">Estudantes responsáveis pelo desenvolvimento.</p>
-    </div>
-
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="row row-cols-1 row-cols-md-2 g-4">
-
-          <div class="col">
-            <div class="card h-100 border-0 shadow-sm py-3">
-              <div class="card-body text-center d-flex flex-column justify-content-center">
-                <h5 class="card-title fs-5 mb-1">Artur Valenza Batinga</h5>
-                <p class="card-text text-muted small text-uppercase fw-semibold">Ciência da Informação</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="card h-100 border-0 shadow-sm py-3">
-              <div class="card-body text-center d-flex flex-column justify-content-center">
-                <h5 class="card-title fs-5 mb-1">Eduardo Jaime José</h5>
-                <p class="card-text text-muted small text-uppercase fw-semibold">Arquivologia</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="card h-100 border-0 shadow-sm py-3">
-              <div class="card-body text-center d-flex flex-column justify-content-center">
-                <h5 class="card-title fs-5 mb-1">João Pedro Becker Schneider</h5>
-                <p class="card-text text-muted small text-uppercase fw-semibold">Ciência da Informação</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="col">
-            <div class="card h-100 border-0 shadow-sm py-3">
-              <div class="card-body text-center d-flex flex-column justify-content-center">
-                <h5 class="card-title fs-5 mb-1">Thiago Bianchetti Aguirre</h5>
-                <p class="card-text text-muted small text-uppercase fw-semibold">Ciência da Informação</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<section id="footer">
-  <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top container">
-    <p class="col-md-4 mb-0 text-body-secondary">© 2025 Jpebecker, Bootstrap</p>
-
-    <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none" aria-label="Bootstrap">
-      <i class="bi bi-bootstrap fs-2"></i>
-    </a>
-
-    <ul class="nav col-md-4 justify-content-end">
-      <li class="nav-item"><a href="{{ url_for('home') }}" class="nav-link px-2 text-body-secondary">Início</a></li>
-      <li class="nav-item"><a href="{{ url_for('sobre') }}" class="nav-link px-2 text-body-secondary">Sobre nós</a></li>
-    </ul>
-  </footer>
-</section>
-
-</body>
-</html>
+{% endblock %}

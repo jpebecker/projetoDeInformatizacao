@@ -1,312 +1,328 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+{% extends "base.html" %}
+{% set active_page = 'despesas' %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block title %}Despesas — FiscalBR{% endblock %}
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% block head %}
+<style>
+  .chart-box {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+  }
+  .chart-container-large { position: relative; height: 350px; width: 100%; }
+  .chart-container-small { position: relative; height: 250px; width: 100%; }
+  .chart-container-trend { position: relative; height: 280px; width: 100%; }
 
-  <title>Despesas - Transparece.io</title>
+  #loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  #loading-overlay.active { display: flex; }
+</style>
+{% endblock %}
 
-  <style>
-    .chart-box {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      margin-bottom: 20px;
-    }
-    .chart-container-large { position: relative; height: 350px; width: 100%; }
-    .chart-container-small { position: relative; height: 250px; width: 100%; }
+{% block content %}
 
-    .view-section { display: none; animation: fadeIn 0.5s; }
-    .view-section.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  </style>
-</head>
+  <div id="loading-overlay">
+    <div class="text-center">
+      <div class="spinner-border text-danger" role="status"></div>
+      <p class="mt-2 fw-semibold text-danger">Carregando dados...</p>
+    </div>
+  </div>
 
-<body>
+  <div class="container py-4">
 
-  <section id="header">
-    <header>
-      <div class="px-3 py-2 text-bg-dark border-bottom">
-        <div class="container">
-          <div class="d-flex flex-wrap align-items-center justify-content-between">
-            <div class="d-flex align-items-center text-white">
-              <i class="bi bi-coin fs-3 me-2"></i>
-              <h2 class="mb-0 text-white">Transparece.io</h2>
-            </div>
-
-            <ul class="nav my-2 text-small">
-              <li>
-                <a href="/" class="nav-link text-white text-center">
-                  Inicio
-                </a>
-              </li>
-              <li>
-                <a href="{{ url_for('apresente') }}" class="nav-link text-white text-center">
-                  Apresentação
-                </a>
-              </li>
-              <li>
-                <a href="{{ url_for('receitas') }}" class="nav-link text-white text-center">
-                  Receitas
-                </a>
-              </li>
-              <li>
-                <a href="{{ url_for('despesas') }}" class="nav-link text-secondary text-center">
-                  Despesas
-                </a>
-              </li>
-              <li>
-                <a href="{{ url_for('invest') }}" class="nav-link text-white text-center">
-                  Investimentos
-                </a>
-              </li>
-              <li>
-                <div class="text-end">
-                  <a href="{{ url_for('sobre') }}" class="text-white text-decoration-none" title="Sobre nós">
-                  <i class="bi bi-question-lg fs-4"></i>
-                  </a>
-                </div>
-              </li>
-            </ul>
-
-            </div>
-          </div>
-        </div>
+    <!-- Page title + year selector -->
+    <div class="d-flex align-items-center pb-3 border-bottom mb-4">
+      <div class="bg-danger text-white rounded p-3 me-3">
+        <i class="bi bi-wallet2 fs-3"></i>
       </div>
-    </header>
-  </section>
-
-  <section id="view-despesas" class="view-section active">
-    <div class="container py-4">
-
-      <div class="d-flex align-items-center pb-3 border-bottom mb-4">
-        <div class="bg-danger text-white rounded p-3 me-3"><i class="bi bi-wallet2 fs-3"></i></div>
-        <div>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
           <h2 class="fw-bold mb-0 text-danger">Painel de Despesas</h2>
-          <p class="text-muted mb-0">Execução orçamentária (Pago) e gastos públicos.</p>
+          <div class="btn-group" role="group" aria-label="Selecionar ano">
+            {% for ano in anos_disponiveis %}
+            <input type="radio" class="btn-check" name="anoRadio" id="ano{{ ano }}"
+                   value="{{ ano }}" autocomplete="off"
+                   {% if ano == ano_selecionado %}checked{% endif %}>
+            <label class="btn btn-outline-danger btn-sm" for="ano{{ ano }}">{{ ano }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <p class="text-muted mb-0 mt-1">Execução orçamentária (Pago) e gastos públicos.</p>
+      </div>
+    </div>
+
+    <!-- Main charts row -->
+    <div class="row g-4">
+
+      <div class="col-lg-8">
+        <div class="chart-box h-100">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="card-title mb-0">Despesas por Função</h5>
+            <div class="btn-group" role="group">
+              <input type="radio" class="btn-check" name="escopoRadio" id="escopoBR" autocomplete="off" checked>
+              <label class="btn btn-outline-danger btn-sm" for="escopoBR">Brasil</label>
+              <input type="radio" class="btn-check" name="escopoRadio" id="escopoSC" autocomplete="off">
+              <label class="btn btn-outline-danger btn-sm" for="escopoSC">Santa Catarina</label>
+            </div>
+          </div>
+          <div class="chart-container-large">
+            <canvas id="canvasDespesaPrincipal"></canvas>
+          </div>
         </div>
       </div>
 
-      <div class="row g-4">
-        <div class="col-lg-8">
-          <div class="chart-box h-100">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="card-title mb-0">Despesas por Função</h5>
-                <div class="btn-group" role="group">
-                    <input type="radio" class="btn-check" name="btnradio" id="btnradioBR" autocomplete="off" checked onclick="toggleChart('br')">
-                    <label class="btn btn-outline-danger btn-sm" for="btnradioBR">Brasil</label>
-
-                    <input type="radio" class="btn-check" name="btnradio" id="btnradioSC" autocomplete="off" onclick="toggleChart('sc')">
-                    <label class="btn btn-outline-danger btn-sm" for="btnradioSC">Santa Catarina</label>
-                </div>
-            </div>
-            <div class="chart-container-large">
-              <canvas id="canvasDespesaPrincipal"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-4">
-          <div class="card border-danger mb-3 shadow-sm">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 text-muted">Total (<span id="label-escopo">Brasil</span>)</h6>
-              <h2 class="card-title text-danger fw-bold" id="valor-total-display">{{ total_br_txt }}</h2>
-              <hr class="my-2">
-              <div class="d-flex align-items-center text-muted" style="font-size: 0.85rem;">
-                <i class="bi bi-clock-history me-2"></i>
-                <div>
-                    <span>Última atualização:</span><br>
-                    <strong class="text-dark">{{ data_atualizacao }}</strong>
-                </div>
+      <div class="col-lg-4">
+        <div class="card border-danger mb-3 shadow-sm">
+          <div class="card-body">
+            <h6 class="card-subtitle mb-2 text-muted">
+              Total (<span id="label-escopo">Brasil</span>)
+            </h6>
+            <h2 class="card-title text-danger fw-bold" id="valor-total-display">
+              {{ total_br_txt }}
+            </h2>
+            <hr class="my-2">
+            <div class="d-flex align-items-center text-muted" style="font-size:.85rem">
+              <i class="bi bi-clock-history me-2"></i>
+              <div>
+                <span>Última atualização:</span><br>
+                <strong class="text-dark" id="data-atualizacao">{{ data_atualizacao }}</strong>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="chart-box mt-4">
-            <h5 class="card-title mb-3">Comparativo por Esfera</h5>
-            <div class="chart-container-small">
-              <canvas id="canvasDespesaEsfera"></canvas>
-            </div>
+        <div class="chart-box mt-4">
+          <h5 class="card-title mb-3">Comparativo por Esfera</h5>
+          <div class="chart-container-small">
+            <canvas id="canvasDespesaEsfera"></canvas>
           </div>
         </div>
       </div>
-
-      <div class="mt-4 bg-white p-4 rounded shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Detalhamento por Função (<span id="label-tabela">Brasil</span>)</h5>
-            <span class="badge bg-secondary">Consolidado</span>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Função (Área de Atuação)</th>
-                <th class="text-end">Valor Total (R$)</th>
-              </tr>
-            </thead>
-
-            <tbody id="tbody-br">
-              {% if lista_dados_br %}
-                {% for item in lista_dados_br %}
-                <tr>
-                  <td class="fw-bold">{{ item['funcao'] }}</td>
-                  <td class="text-end font-monospace text-danger">{{ item['valor_formatado'] }}</td>
-                </tr>
-                {% endfor %}
-              {% endif %}
-            </tbody>
-            <tbody id="tbody-sc" style="display: none;">
-              {% if lista_dados_sc %}
-                {% for item in lista_dados_sc %}
-                <tr>
-                  <td class="fw-bold">{{ item['funcao'] }}</td>
-                  <td class="text-end font-monospace text-danger">{{ item['valor_formatado'] }}</td>
-                </tr>
-                {% endfor %}
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
-  </section>
 
-  <section id="footer">
-    <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 mt-4 border-top border-secondary bg-dark text-white p-3">
+    <!-- Historical trend -->
+    <div class="mt-4 chart-box">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Evolução Histórica — Total de Despesas</h5>
+        <span class="badge bg-danger">Série temporal</span>
+      </div>
+      <div class="chart-container-trend">
+        <canvas id="canvasDespesaTrend"></canvas>
+      </div>
+    </div>
 
-      <p class="col-md-4 mb-0 text-white-50">© 2025 Jpebecker, Bootstrap</p>
+    <!-- Detail table -->
+    <div class="mt-4 bg-white p-4 rounded shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Detalhamento por Função (<span id="label-tabela">Brasil</span>)</h5>
+        <span class="badge bg-secondary">Consolidado</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Função (Área de Atuação)</th>
+              <th class="text-end">Valor Total (R$)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-tabela">
+            {% if lista_dados_br %}
+              {% for item in lista_dados_br %}
+              <tr>
+                <td class="fw-bold">{{ item['funcao'] }}</td>
+                <td class="text-end font-monospace text-danger">{{ item['valor'] | format_brl }}</td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-      <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none" aria-label="Bootstrap">
-        <i class="bi bi-bootstrap fs-2"></i>
-      </a>
+  </div>
 
-      <ul class="nav col-md-4 justify-content-end">
-        <li class="nav-item"><a href="#header" class="nav-link px-2 text-white">Início</a></li>
-        <li class="nav-item"><a href="{{ url_for('sobre') }}" class="nav-link px-2 text-white">Sobre nós</a></li>
-      </ul>
-    </footer>
-  </section>
+{% endblock %}
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  Chart.defaults.font.family = "'Segoe UI', Roboto, sans-serif";
+  Chart.defaults.color = "#6c757d";
 
-  <script>
-    Chart.defaults.font.family = "'Segoe UI', Roboto, sans-serif";
-    Chart.defaults.color = "#6c757d";
+  const PALETTE = ['#dc3545','#fd7e14','#ffc107','#d63384','#6f42c1','#6c757d','#20c997','#0dcaf0','#0d6efd'];
 
-    const DATA_BR = {
-        labels: {{ labels_br | tojson | safe }},
-        values: {{ values_br | tojson | safe }},
-        totalText: "{{ total_br_txt }}"
-    };
-
-    const DATA_SC = {
-        labels: {{ labels_sc | tojson | safe }},
-        values: {{ values_sc | tojson | safe }},
-        totalText: "{{ total_sc_txt }}"
-    };
-
-    const valuesEsfera = {{ values_esfera | tojson | safe }};
-    const palette = ['#dc3545', '#fd7e14', '#ffc107', '#d63384', '#6f42c1', '#6c757d', '#20c997'];
-
-    let mainChartInstance = null;
-
-    function initMainChart() {
-        const ctx = document.getElementById('canvasDespesaPrincipal');
-        if (!ctx) return;
-
-        mainChartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: DATA_BR.labels,
-                datasets: [{
-                    data: DATA_BR.values,
-                    backgroundColor: palette,
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let value = context.raw;
-                                return value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
-                            }
-                        }
-                    }
-                }
-            }
-        });
+  let state = {
+    scope: 'br',
+    year:  {{ ano_selecionado }},
+    data: {
+      br: {
+        labels:    {{ labels_br      | tojson | safe }},
+        values:    {{ values_br      | tojson | safe }},
+        total_txt: "{{ total_br_txt }}",
+        tabela:    {{ lista_dados_br | tojson | safe }}
+      },
+      sc: {
+        labels:    {{ labels_sc      | tojson | safe }},
+        values:    {{ values_sc      | tojson | safe }},
+        total_txt: "{{ total_sc_txt }}",
+        tabela:    {{ lista_dados_sc | tojson | safe }}
+      },
+      esfera:           {{ values_esfera | tojson | safe }},
+      data_atualizacao: "{{ data_atualizacao }}"
     }
+  };
 
-    function toggleChart(scope) {
-        if (!mainChartInstance) return;
+  let mainChart = null, esferaChart = null, trendChart = null;
 
-        const labelEscopo = document.getElementById('label-escopo');
-        const labelTabela = document.getElementById('label-tabela');
-        const valorTotalDisplay = document.getElementById('valor-total-display');
-        const tbodyBR = document.getElementById('tbody-br');
-        const tbodySC = document.getElementById('tbody-sc');
+  function formatBRL(v) {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
 
-        let newData;
-
-        if (scope === 'br') {
-            newData = DATA_BR;
-            labelEscopo.innerText = "Brasil";
-            labelTabela.innerText = "Brasil";
-            tbodyBR.style.display = "table-row-group";
-            tbodySC.style.display = "none";
-        } else {
-            newData = DATA_SC;
-            labelEscopo.innerText = "Santa Catarina";
-            labelTabela.innerText = "Santa Catarina";
-            tbodyBR.style.display = "none";
-            tbodySC.style.display = "table-row-group";
+  function initMainChart() {
+    const ctx = document.getElementById('canvasDespesaPrincipal');
+    if (!ctx) return;
+    const d = state.data[state.scope];
+    mainChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: d.labels,
+        datasets: [{ data: d.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } },
+          tooltip: { callbacks: { label: c => ' ' + formatBRL(c.raw) } }
         }
-
-        mainChartInstance.data.labels = newData.labels;
-        mainChartInstance.data.datasets[0].data = newData.values;
-        mainChartInstance.update();
-        valorTotalDisplay.innerText = newData.totalText;
-    }
-
-    const ctxEsfera = document.getElementById('canvasDespesaEsfera');
-    if (ctxEsfera) {
-        new Chart(ctxEsfera, {
-            type: 'pie',
-            data: {
-                labels: ['Total Brasil', 'Total SC'],
-                datasets: [{
-                    data: valuesEsfera,
-                    backgroundColor: ['#dc3545', '#fd7e14'],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        initMainChart();
+      }
     });
-  </script>
-</body>
-</html>
+  }
+
+  function initEsferaChart() {
+    const ctx = document.getElementById('canvasDespesaEsfera');
+    if (!ctx) return;
+    esferaChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Total Brasil', 'Total SC'],
+        datasets: [{ data: state.data.esfera, backgroundColor: ['#dc3545','#fd7e14'], borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  function initTrendChart(anos, br, sc) {
+    const ctx = document.getElementById('canvasDespesaTrend');
+    if (!ctx) return;
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: anos,
+        datasets: [
+          { label: 'Brasil', data: br, backgroundColor: 'rgba(220,53,69,0.7)', borderColor: '#dc3545', borderWidth: 1, borderRadius: 4 },
+          { label: 'Santa Catarina', data: sc, backgroundColor: 'rgba(253,126,20,0.7)', borderColor: '#fd7e14', borderWidth: 1, borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: c => ' ' + formatBRL(c.raw) } }
+        },
+        scales: {
+          y: { ticks: { callback: v => {
+            if (v >= 1e12) return 'R$ ' + (v/1e12).toFixed(1) + ' Tri';
+            if (v >= 1e9)  return 'R$ ' + (v/1e9).toFixed(1) + ' Bi';
+            if (v >= 1e6)  return 'R$ ' + (v/1e6).toFixed(1) + ' Mi';
+            return 'R$ ' + v;
+          }}}
+        }
+      }
+    });
+  }
+
+  function updateUI() {
+    const d = state.data[state.scope];
+    const scopeLabel = state.scope === 'br' ? 'Brasil' : 'Santa Catarina';
+
+    document.getElementById('label-escopo').innerText = scopeLabel;
+    document.getElementById('label-tabela').innerText = scopeLabel;
+    document.getElementById('valor-total-display').innerText = d.total_txt;
+    document.getElementById('data-atualizacao').innerText = state.data.data_atualizacao;
+
+    if (mainChart) {
+      mainChart.data.labels = d.labels;
+      mainChart.data.datasets[0].data = d.values;
+      mainChart.update();
+    }
+    if (esferaChart) {
+      esferaChart.data.datasets[0].data = state.data.esfera;
+      esferaChart.update();
+    }
+
+    const tbody = document.getElementById('tbody-tabela');
+    tbody.innerHTML = '';
+    (d.tabela || []).forEach(item => {
+      const tr = document.createElement('tr');
+      const tdNome = document.createElement('td');
+      tdNome.className = 'fw-bold';
+      tdNome.textContent = item.funcao || item.descricao || '—';
+      const tdValor = document.createElement('td');
+      tdValor.className = 'text-end font-monospace text-danger';
+      tdValor.textContent = item.valor_formatado || formatBRL(parseFloat(item.valor || item.vlpago || 0));
+      tr.appendChild(tdNome);
+      tr.appendChild(tdValor);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function fetchYear(year) {
+    document.getElementById('loading-overlay').classList.add('active');
+    fetch(`/api/despesas?ano=${year}`)
+      .then(r => r.json())
+      .then(json => {
+        state.year = year;
+        state.data = { br: json.br, sc: json.sc, esfera: json.esfera, data_atualizacao: json.data_atualizacao };
+        updateUI();
+      })
+      .catch(err => console.error('Erro:', err))
+      .finally(() => document.getElementById('loading-overlay').classList.remove('active'));
+  }
+
+  function fetchTrend() {
+    fetch('/api/historico/despesas')
+      .then(r => r.json())
+      .then(json => initTrendChart(json.anos, json.br, json.sc))
+      .catch(err => console.error('Erro histórico:', err));
+  }
+
+  document.querySelectorAll('input[name="anoRadio"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+      if (parseInt(this.value) !== state.year) fetchYear(parseInt(this.value));
+    });
+  });
+  document.getElementById('escopoBR').addEventListener('change', function () {
+    if (this.checked) { state.scope = 'br'; updateUI(); }
+  });
+  document.getElementById('escopoSC').addEventListener('change', function () {
+    if (this.checked) { state.scope = 'sc'; updateUI(); }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    initMainChart();
+    initEsferaChart();
+    fetchTrend();
+  });
+</script>
+{% endblock %}

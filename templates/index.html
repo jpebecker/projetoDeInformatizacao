@@ -1,203 +1,359 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% set active_page = 'home' %}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block title %}FiscalBR — Dados Fiscais Públicos{% endblock %}
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css">
+{% block head %}
+<style>
+  /* ── Hero ── */
+  .hero {
+    background-color: #111;
+    color: #fff;
+    padding: 6rem 0 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(13,110,253,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(25,135,84,0.10) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #6ea8fe;
+    border: 1px solid rgba(110,168,254,.35);
+    border-radius: 2rem;
+    padding: .25rem .9rem;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+  }
+  .hero h1 span {
+    background: linear-gradient(90deg, #6ea8fe, #75e8b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .lead {
+    color: rgba(255,255,255,.65);
+    max-width: 52ch;
+  }
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  /* ── Stats strip ── */
+  .stats-strip {
+    background: #1a1a1a;
+    border-top: 1px solid #2a2a2a;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 2rem 0;
+  }
+  .stat-item { text-align: center; }
+  .stat-item .stat-value {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+  .stat-item .stat-label {
+    font-size: .78rem;
+    color: rgba(255,255,255,.4);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-top: .35rem;
+  }
+  .stat-divider {
+    width: 1px;
+    background: #2a2a2a;
+    align-self: stretch;
+  }
 
-  <title>Home - Transparece.io</title>
-</head>
-  <style>
+  /* ── Panel cards ── */
+  .panel-card {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .25s ease, box-shadow .25s ease;
+    text-decoration: none;
+    display: block;
+  }
+  .panel-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0,0,0,.18);
+  }
+  .panel-card .card-inner {
+    padding: 2.5rem 2rem 2rem;
+    height: 100%;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .panel-card .card-icon {
+    font-size: 2.8rem;
+    opacity: .9;
+    margin-bottom: 1rem;
+  }
+  .panel-card .card-label {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .panel-card .card-desc {
+    font-size: .875rem;
+    color: rgba(255,255,255,.7);
+    margin-top: .4rem;
+  }
+  .panel-card .card-cta {
+    font-size: .82rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.5);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-top: 1.5rem;
+  }
+  .panel-card .card-cta i { transition: transform .2s; }
+  .panel-card:hover .card-cta i { transform: translateX(4px); }
 
-    body {
-      background-color: #f8f9fa;
-    }
+  .bg-receita   { background: linear-gradient(135deg, #145c38 0%, #1a7a4a 100%); }
+  .bg-despesa   { background: linear-gradient(135deg, #7a1a1a 0%, #a52020 100%); }
+  .bg-invest    { background: linear-gradient(135deg, #0a2f6e 0%, #0d4fa0 100%); }
 
-    /* --- Cards de areas
-    .card-cover {
-      background-color: #343a40; /* Fallback color */
-      background-size: cover;
-      background-position: center;
-      transition: all 0.3s ease;
-      border: none;
-      cursor: pointer;
-    }
-    .card-cover:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
-    }
+  /* ── How it works ── */
+  .how-section { background: #f8f9fa; padding: 5rem 0; }
+  .step-number {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: #fff;
+    font-weight: 700;
+    font-size: .9rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
 
-    /* Efeito de gradiente dos cards */
-    .bg-gradient-receita { background: linear-gradient(135deg, #198754 0%, #20c997 100%); }
-    .bg-gradient-despesa { background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); }
-    .bg-gradient-invest { background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%); }
-    </style>
-<body>
-<section id="header">
-  <header>
-    <div class="px-3 py-2 text-bg-dark border-bottom">
-      <div class="container">
-        <div class="d-flex flex-wrap align-items-center justify-content-between">
-          <div class="d-flex align-items-center text-white">
-            <i class="bi bi-coin fs-3 me-2"></i>
-            <h2 class="mb-0 text-white">Transparece.io</h2>
-          </div>
+  /* ── Sources ── */
+  .sources-section { background: #fff; padding: 4rem 0; }
+  .source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: .6rem 1.1rem;
+    font-size: .85rem;
+    color: #495057;
+    text-decoration: none;
+    transition: border-color .2s, color .2s;
+  }
+  .source-badge:hover { border-color: #0d6efd; color: #0d6efd; }
+</style>
+{% endblock %}
 
-          <ul class="nav my-2 text-small">
-            <li>
-              <a href="/" class="nav-link text-secondary text-center">
-                Inicio
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('apresente') }}" class="nav-link text-white text-center">
-                Apresentação
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('receitas') }}" class="nav-link text-white text-center">
-                Receitas
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('despesas') }}" class="nav-link text-white text-center">
-                Despesas
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('invest') }}" class="nav-link text-white text-center">
-                Investimentos
-              </a>
-            </li>
-            <li>
-              <div class="text-end">
-                <a href="{{ url_for('sobre') }}" class="text-white text-decoration-none" title="Sobre nós">
-                <i class="bi bi-question-lg fs-4"></i>
-                </a>
-              </div>
-            </li>
-          </ul>
+{% block content %}
 
-          </div>
+<!-- ================================================================
+     HERO
+================================================================ -->
+<section class="hero">
+  <div class="container position-relative">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <div class="hero-badge">Dados públicos federais &amp; estaduais</div>
+        <h1>
+          Orçamento público<br>
+          <span>sem complexidade</span>
+        </h1>
+        <p class="lead mt-3 mb-4">
+          FiscalBR consolida e visualiza dados fiscais do governo federal e do
+          estado de Santa Catarina — receitas, despesas e investimentos —
+          com série histórica e atualização automática.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{{ url_for('revenues') }}"    class="btn btn-success btn-lg px-4">Ver Receitas</a>
+          <a href="{{ url_for('expenses') }}"    class="btn btn-danger btn-lg px-4">Ver Despesas</a>
+          <a href="{{ url_for('investments') }}" class="btn btn-primary btn-lg px-4">Ver Investimentos</a>
         </div>
       </div>
-    </div>
-  </header>
-</section>
 
-<section id="title" style="background-color: #333333; color: #ffffff;">
-  <div class="container px-4 py-5">
-    <div class="row align-items-center g-5 py-5">
-      <div class="col-lg-8 mx-auto text-center">
-
-        <h1 class="display-3 fw-bold text-white lh-1 mb-3">Projeto de Informatização</h1>
-        <hr class="my-4 border-light opacity-50">
-        <p class="lead mb-4">
-          A informatização de uma Unidade de Informação.
-          <br>
-          Recorte do Portal da Transparência
-        </p>
-
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-          <a href="#objective" class="btn btn-primary btn-lg px-4 gap-3">Objetivo</a>
-          <a href="{{ url_for('sobre') }}" class="btn btn-outline-secondary btn-lg px-4">Sobre Nós</a>
-        </div>
-
+      <div class="col-lg-5 d-none d-lg-flex justify-content-center">
+        <i class="bi bi-bar-chart-line text-white" style="font-size:11rem; opacity:.08;"></i>
       </div>
     </div>
   </div>
 </section>
 
-<section id="objective">
-    <div class="px-4 pt-5 my-5 text-center border-bottom">
-      <h1 class="display-3 fw-bold text-body-emphasis">Objetivo deste Projeto</h1>
-      <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4">A informatização simplifica a busca por dados e fortalece o entendimento sobre o ciclo de uso dos recursos públicos.
-Os resultados poderão trazer ganhos em clareza e facilidade de acesso, evidenciando como a modelagem informacional pode transformar dados desconexos em conhecimento estruturado e socialmente útil.
-        </p>
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mb-5">
-          <a href="#Sections" class="btn btn-primary btn-lg px-4 me-sm-3">Fluxo Orçamentário</a>
-        </div>
-      </div>
-    </div>
-</section>
-
-<section id="Sections" style="background-color: #1c1c1c;" class="pb-5">
-  <div class="container mb-5">
-    <h3 class="pb-2 border-bottom text-white mb-4 display-5">Áreas de Análise</h3>
-
-    <div class="row row-cols-1 row-cols-lg-3 align-items-stretch g-4">
-
-      <div class="col">
-        <div class="card card-cover h-100 overflow-hidden rounded-4 text-white bg-gradient-receita shadow-lg position-relative">
-          <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
-            <h3 class="pt-5 mt-5 mb-4 fs-2 lh-1 fw-bold text-nowrap">Receitas</h3>
-            <ul class="d-flex list-unstyled mt-auto">
-              <li class="me-auto"><i class="bi bi-graph-up-arrow fs-2"></i></li>
-              <li class="d-flex align-items-center">
-                <small class="fw-bold"><a href="{{ url_for('receitas') }}" class="stretched-link text-white text-decoration-none">Ver Painel</a> <i class="bi bi-arrow-right"></i></small>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="col">
-        <div class="card card-cover h-100 overflow-hidden rounded-4 text-white bg-gradient-despesa shadow-lg position-relative">
-          <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
-            <h3 class="pt-5 mt-5 mb-4 fs-2 lh-1 fw-bold text-nowrap">Despesas</h3>
-            <ul class="d-flex list-unstyled mt-auto">
-              <li class="me-auto"><i class="bi bi-wallet2 fs-2"></i></li>
-              <li class="d-flex align-items-center">
-                <small class="fw-bold"><a href="{{ url_for('despesas') }}" class="stretched-link text-white text-decoration-none">Ver Painel</a> <i class="bi bi-arrow-right"></i></small>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="col">
-        <div class="card card-cover h-100 overflow-hidden rounded-4 text-white bg-gradient-invest shadow-lg position-relative">
-          <div class="d-flex flex-column h-100 p-5 pb-3 text-shadow-1">
-            <h3 class="pt-5 mt-5 mb-4 fs-2 lh-1 fw-bold text-nowrap">Investimentos</h3>
-            <ul class="d-flex list-unstyled mt-auto">
-              <li class="me-auto"><i class="bi bi-buildings fs-2"></i></li>
-              <li class="d-flex align-items-center">
-                <small class="fw-bold"><a href="{{ url_for('invest') }}" class="stretched-link text-white text-decoration-none">Ver Painel</a> <i class="bi bi-arrow-right"></i></small>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
+<!-- ================================================================
+     STATS STRIP
+================================================================ -->
+<div class="stats-strip">
   <div class="container">
-    <div class="d-flex justify-content-center border-bottom border-secondary mb-5 pb-4">
-      <a href="{{ url_for('apresente') }}" class="btn btn-outline-light btn-lg px-5 rounded-0">Explorar a metodologia</a>
+    <div class="d-flex justify-content-center align-items-center gap-0 flex-wrap">
+
+      <div class="stat-item px-4 py-2">
+        <div class="stat-value">2</div>
+        <div class="stat-label">Esferas cobertas</div>
+      </div>
+      <div class="stat-divider d-none d-sm-block"></div>
+
+      <div class="stat-item px-4 py-2">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Painéis analíticos</div>
+      </div>
+      <div class="stat-divider d-none d-sm-block"></div>
+
+      <div class="stat-item px-4 py-2">
+        <div class="stat-value">6+</div>
+        <div class="stat-label">Anos de histórico</div>
+      </div>
+      <div class="stat-divider d-none d-sm-block"></div>
+
+      <div class="stat-item px-4 py-2">
+        <div class="stat-value">100%</div>
+        <div class="stat-label">Dados governamentais</div>
+      </div>
+
     </div>
   </div>
+</div>
 
+<!-- ================================================================
+     PANEL CARDS
+================================================================ -->
+<section style="background:#1c1c1c; padding:5rem 0;">
+  <div class="container">
+    <h2 class="text-white fw-bold mb-2">Painéis de análise</h2>
+    <p class="text-white-50 mb-5">Selecione um painel para explorar os dados.</p>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <a href="{{ url_for('revenues') }}" class="panel-card">
+          <div class="card-inner bg-receita">
+            <div>
+              <div class="card-icon"><i class="bi bi-piggy-bank"></i></div>
+              <div class="card-label">Receitas</div>
+              <div class="card-desc">Origem dos recursos arrecadados por esfera de governo.</div>
+            </div>
+            <div class="card-cta">Explorar painel <i class="bi bi-arrow-right"></i></div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-4">
+        <a href="{{ url_for('expenses') }}" class="panel-card">
+          <div class="card-inner bg-despesa">
+            <div>
+              <div class="card-icon"><i class="bi bi-wallet2"></i></div>
+              <div class="card-label">Despesas</div>
+              <div class="card-desc">Exibição de gastos por função / área de atuação.</div>
+            </div>
+            <div class="card-cta">Explorar painel <i class="bi bi-arrow-right"></i></div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-4">
+        <a href="{{ url_for('investments') }}" class="panel-card">
+          <div class="card-inner bg-invest">
+            <div>
+              <div class="card-icon"><i class="bi bi-buildings"></i></div>
+              <div class="card-label">Investimentos</div>
+              <div class="card-desc">Aplicação de capital (GND-4) por função: O impacto real.</div>
+            </div>
+            <div class="card-cta">Explorar painel <i class="bi bi-arrow-right"></i></div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section id="footer">
-  <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
-    <p class="col-md-4 mb-0 text-body-secondary">© 2025 Jpebecker, Bootstrap</p>
+<!-- ================================================================
+     HOW IT WORKS
+================================================================ -->
+<section class="how-section">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-5">
+        <h2 class="fw-bold mb-3">Como funciona</h2>
+        <p class="text-muted">
+          Um pipeline ETL coleta os dados diretamente das APIs oficiais,
+          processa e armazena localmente. O Flask serve os dashboards
+          sem dependência de infraestrutura externa.
+        </p>
+      </div>
 
-    <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none" aria-label="Bootstrap">
-      <i class="bi bi-bootstrap fs-2"></i>
-    </a>
+      <div class="col-lg-7">
+        <div class="d-flex flex-column gap-4">
 
-    <ul class="nav col-md-4 justify-content-end">
-      <li class="nav-item"><a href="#header" class="nav-link px-2 text-body-secondary">Início</a></li>
-      <li class="nav-item"><a href="{{ url_for('sobre') }}" class="nav-link px-2 text-body-secondary">Sobre nós</a></li>
-    </ul>
-  </footer>
+          <div class="d-flex gap-3 align-items-start">
+            <div class="step-number">1</div>
+            <div>
+              <h6 class="fw-bold mb-1">Coleta automática via API</h6>
+              <p class="text-muted mb-0 small">
+                O módulo <code>extract.py</code> consulta o Portal da Transparência federal
+                e a API do estado de SC, baixa os arquivos CSV/ZIP e os processa com pandas.
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 align-items-start">
+            <div class="step-number">2</div>
+            <div>
+              <h6 class="fw-bold mb-1">Processamento e armazenamento</h6>
+              <p class="text-muted mb-0 small">
+                Os dados são agregados por categoria e salvos em JSONs anuais em
+                <code>database/</code>. O histórico é acumulado sem sobrescrever anos anteriores.
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 align-items-start">
+            <div class="step-number">3</div>
+            <div>
+              <h6 class="fw-bold mb-1">Visualização interativa</h6>
+              <p class="text-muted mb-0 small">
+                O Flask entrega os dashboards com Chart.js. A troca de ano e esfera
+                acontece via AJAX — sem recarregar a página. O gráfico de evolução
+                histórica é carregado automaticamente com todos os anos disponíveis.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
-</body>
-</html>
+
+<!-- ================================================================
+     DATA SOURCES
+================================================================ -->
+<section class="sources-section">
+  <div class="container text-center">
+    <h5 class="fw-semibold text-muted text-uppercase" style="letter-spacing:.1em; font-size:.8rem;">
+      Fontes de dados
+    </h5>
+    <div class="d-flex flex-wrap justify-content-center gap-3 mt-3">
+      <a href="https://portaldatransparencia.gov.br" target="_blank" rel="noopener" class="source-badge">
+        <i class="bi bi-globe2"></i> Portal da Transparência — Governo Federal
+      </a>
+      <a href="https://transparencia.sc.gov.br" target="_blank" rel="noopener" class="source-badge">
+        <i class="bi bi-globe2"></i> Portal da Transparência — Santa Catarina
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
