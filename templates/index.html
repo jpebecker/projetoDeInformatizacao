@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = 'home' %}
 
-{% block title %}FiscalBR — Dados Fiscais Públicos{% endblock %}
+{% block title %}VizGov — Dados Fiscais Públicos{% endblock %}
 
 {% block head %}
 <style>
@@ -128,7 +128,6 @@
 
   .bg-receita   { background: linear-gradient(135deg, #145c38 0%, #1a7a4a 100%); }
   .bg-despesa   { background: linear-gradient(135deg, #7a1a1a 0%, #a52020 100%); }
-  .bg-invest    { background: linear-gradient(135deg, #0a2f6e 0%, #0d4fa0 100%); }
 
   /* ── How it works ── */
   .how-section { background: #f8f9fa; padding: 5rem 0; }
@@ -158,6 +157,90 @@
     transition: border-color .2s, color .2s;
   }
   .source-badge:hover { border-color: #0d6efd; color: #0d6efd; }
+
+  /* ── Hero map ── */
+  .hero-map-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .map-toggles {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    justify-content: flex-end;
+  }
+  .map-toggle-btn {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,.2);
+    background: transparent;
+    color: rgba(255,255,255,.45);
+    border-radius: 2rem;
+    padding: .2rem .85rem;
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .map-toggle-btn.active-rec {
+    background: rgba(25,135,84,.25);
+    border-color: #198754;
+    color: #75e8b0;
+  }
+  .map-toggle-btn.active-des {
+    background: rgba(220,53,69,.25);
+    border-color: #dc3545;
+    color: #f8a6ad;
+  }
+  .map-toggle-btn:hover:not(.active-rec):not(.active-des) {
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.7);
+  }
+  #hero-map svg { width: 100%; display: block; }
+  .map-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: .7rem;
+    color: rgba(255,255,255,.35);
+  }
+  .map-legend-bar {
+    display: flex;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .map-legend-ano {
+    margin-left: auto;
+    font-size: .68rem;
+    color: rgba(255,255,255,.25);
+  }
+  #hero-map-tooltip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .map-tt {
+    background: rgba(15,15,15,.88);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    padding: 6px 11px;
+    min-width: 130px;
+    backdrop-filter: blur(4px);
+  }
+  .map-tt-name { font-size: .78rem; font-weight: 600; color: #fff; }
+  .map-tt-uf   { font-size: .68rem; color: rgba(255,255,255,.4); }
+  .map-tt-val  { font-size: .75rem; margin-top: 2px; }
+  .map-tt-val.rec { color: #75e8b0; }
+  .map-tt-val.des { color: #f8a6ad; }
+  #map-spinner {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
 </style>
 {% endblock %}
 
@@ -170,25 +253,48 @@
   <div class="container position-relative">
     <div class="row align-items-center g-5">
       <div class="col-lg-7">
-        <div class="hero-badge">Dados públicos federais &amp; estaduais</div>
+        <div class="hero-badge">Dados públicos — todos os 27 estados</div>
         <h1>
           Orçamento público<br>
           <span>sem complexidade</span>
         </h1>
         <p class="lead mt-3 mb-4">
-          FiscalBR consolida e visualiza dados fiscais do governo federal e do
-          estado de Santa Catarina — receitas, despesas e investimentos —
-          com série histórica e atualização automática.
+          VizGov consolida e visualiza dados fiscais do governo federal e dos
+          27 estados brasileiros — receitas e despesas —
+          direto do SICONFI (Tesouro Nacional), com série histórica.
         </p>
         <div class="d-flex flex-wrap gap-3">
-          <a href="{{ url_for('revenues') }}"    class="btn btn-success btn-lg px-4">Ver Receitas</a>
-          <a href="{{ url_for('expenses') }}"    class="btn btn-danger btn-lg px-4">Ver Despesas</a>
-          <a href="{{ url_for('investments') }}" class="btn btn-primary btn-lg px-4">Ver Investimentos</a>
+          <a href="{{ url_for('revenues') }}" class="btn btn-success btn-lg px-4">Ver Receitas</a>
+          <a href="{{ url_for('expenses') }}" class="btn btn-danger btn-lg px-4">Ver Despesas</a>
         </div>
       </div>
 
-      <div class="col-lg-5 d-none d-lg-flex justify-content-center">
-        <i class="bi bi-bar-chart-line text-white" style="font-size:11rem; opacity:.08;"></i>
+      <div class="col-lg-5 d-none d-lg-block">
+        <div class="hero-map-wrap">
+          <div class="map-toggles">
+            <button class="map-toggle-btn active-rec" id="btn-rec" onclick="heroMapSetTipo('receitas')">Receitas</button>
+            <button class="map-toggle-btn" id="btn-des" onclick="heroMapSetTipo('despesas')">Despesas</button>
+          </div>
+          <div style="position:relative;">
+            <div id="hero-map"></div>
+            <div id="map-spinner">
+              <div class="spinner-border spinner-border-sm text-secondary" role="status" style="opacity:.4;"></div>
+            </div>
+            <div id="hero-map-tooltip">
+              <div class="map-tt">
+                <div class="map-tt-name" id="mtt-name"></div>
+                <div class="map-tt-uf"   id="mtt-uf"></div>
+                <div class="map-tt-val"  id="mtt-val"></div>
+              </div>
+            </div>
+          </div>
+          <div class="map-legend">
+            <span>Menor</span>
+            <div class="map-legend-bar" id="map-leg-bar"></div>
+            <span>Maior</span>
+            <span class="map-legend-ano" id="map-leg-ano"></span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -202,19 +308,19 @@
     <div class="d-flex justify-content-center align-items-center gap-0 flex-wrap">
 
       <div class="stat-item px-4 py-2">
-        <div class="stat-value">2</div>
-        <div class="stat-label">Esferas cobertas</div>
+        <div class="stat-value">27</div>
+        <div class="stat-label">Estados cobertos</div>
       </div>
       <div class="stat-divider d-none d-sm-block"></div>
 
       <div class="stat-item px-4 py-2">
-        <div class="stat-value">3</div>
+        <div class="stat-value">2</div>
         <div class="stat-label">Painéis analíticos</div>
       </div>
       <div class="stat-divider d-none d-sm-block"></div>
 
       <div class="stat-item px-4 py-2">
-        <div class="stat-value">6+</div>
+        <div class="stat-value">10+</div>
         <div class="stat-label">Anos de histórico</div>
       </div>
       <div class="stat-divider d-none d-sm-block"></div>
@@ -236,8 +342,8 @@
     <h2 class="text-white fw-bold mb-2">Painéis de análise</h2>
     <p class="text-white-50 mb-5">Selecione um painel para explorar os dados.</p>
 
-    <div class="row g-4">
-      <div class="col-md-4">
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-5">
         <a href="{{ url_for('revenues') }}" class="panel-card">
           <div class="card-inner bg-receita">
             <div>
@@ -250,26 +356,13 @@
         </a>
       </div>
 
-      <div class="col-md-4">
+      <div class="col-md-5">
         <a href="{{ url_for('expenses') }}" class="panel-card">
           <div class="card-inner bg-despesa">
             <div>
               <div class="card-icon"><i class="bi bi-wallet2"></i></div>
               <div class="card-label">Despesas</div>
               <div class="card-desc">Exibição de gastos por função / área de atuação.</div>
-            </div>
-            <div class="card-cta">Explorar painel <i class="bi bi-arrow-right"></i></div>
-          </div>
-        </a>
-      </div>
-
-      <div class="col-md-4">
-        <a href="{{ url_for('investments') }}" class="panel-card">
-          <div class="card-inner bg-invest">
-            <div>
-              <div class="card-icon"><i class="bi bi-buildings"></i></div>
-              <div class="card-label">Investimentos</div>
-              <div class="card-desc">Aplicação de capital (GND-4) por função: O impacto real.</div>
             </div>
             <div class="card-cta">Explorar painel <i class="bi bi-arrow-right"></i></div>
           </div>
@@ -302,8 +395,9 @@
             <div>
               <h6 class="fw-bold mb-1">Coleta automática via API</h6>
               <p class="text-muted mb-0 small">
-                O módulo <code>extract.py</code> consulta o Portal da Transparência federal
-                e a API do estado de SC, baixa os arquivos CSV/ZIP e os processa com pandas.
+                O módulo <code>extract.py</code> consulta a API REST do SICONFI
+                (Tesouro Nacional), obtendo os dados do RREO em formato JSON padronizado
+                para todos os entes federativos.
               </p>
             </div>
           </div>
@@ -313,8 +407,9 @@
             <div>
               <h6 class="fw-bold mb-1">Processamento e armazenamento</h6>
               <p class="text-muted mb-0 small">
-                Os dados são agregados por categoria e salvos em JSONs anuais em
-                <code>database/</code>. O histórico é acumulado sem sobrescrever anos anteriores.
+                Os dados são agregados por função de governo e salvos em JSONs anuais em
+                <code>database/{UF}/</code> — uma subpasta por estado. O histórico é acumulado
+                sem sobrescrever anos anteriores.
               </p>
             </div>
           </div>
@@ -346,14 +441,161 @@
       Fontes de dados
     </h5>
     <div class="d-flex flex-wrap justify-content-center gap-3 mt-3">
-      <a href="https://portaldatransparencia.gov.br" target="_blank" rel="noopener" class="source-badge">
-        <i class="bi bi-globe2"></i> Portal da Transparência — Governo Federal
+      <a href="https://siconfi.tesouro.gov.br" target="_blank" rel="noopener" class="source-badge">
+        <i class="bi bi-globe2"></i> SICONFI — Tesouro Nacional
       </a>
-      <a href="https://transparencia.sc.gov.br" target="_blank" rel="noopener" class="source-badge">
-        <i class="bi bi-globe2"></i> Portal da Transparência — Santa Catarina
+      <a href="https://apidatalake.tesouro.gov.br/docs/siconfi/" target="_blank" rel="noopener" class="source-badge">
+        <i class="bi bi-code-slash"></i> API DataLake — Tesouro Nacional
       </a>
     </div>
   </div>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const NAME_TO_UF = {
+    'Acre':'AC','Alagoas':'AL','Amapá':'AP','Amapa':'AP','Amazonas':'AM',
+    'Bahia':'BA','Ceará':'CE','Ceara':'CE','Distrito Federal':'DF','Federal District':'DF',
+    'Espírito Santo':'ES','Espirito Santo':'ES','Goiás':'GO','Goias':'GO',
+    'Maranhão':'MA','Maranhao':'MA','Mato Grosso':'MT','Mato Grosso do Sul':'MS',
+    'Minas Gerais':'MG','Pará':'PA','Para':'PA','Paraíba':'PB','Paraiba':'PB',
+    'Paraná':'PR','Parana':'PR','Pernambuco':'PE','Piauí':'PI','Piaui':'PI',
+    'Rio de Janeiro':'RJ','Rio Grande do Norte':'RN','Rio Grande do Sul':'RS',
+    'Rondônia':'RO','Rondonia':'RO','Roraima':'RR','Santa Catarina':'SC',
+    'São Paulo':'SP','Sao Paulo':'SP','Sergipe':'SE','Tocantins':'TO'
+  };
+
+  const PALETTES = {
+    receitas: ['#1a3d26','#1e5c36','#1a7a4a','#27a060','#52c484','#75e8b0'],
+    despesas: ['#4a1010','#7a1a1a','#a52020','#cc3030','#e87070','#f8a6ad']
+  };
+
+  const fmt = function (v) {
+    if (!v || v === 0) return 'Sem dados';
+    if (v >= 1e12) return 'R$ ' + (v / 1e12).toFixed(2) + ' tri';
+    if (v >= 1e9)  return 'R$ ' + (v / 1e9).toFixed(1) + ' bi';
+    if (v >= 1e6)  return 'R$ ' + (v / 1e6).toFixed(1) + ' mi';
+    return 'R$ ' + v.toLocaleString('pt-BR');
+  };
+
+  var tipo       = 'receitas';
+  var cachedTopo = null;
+  var cachedData = {};
+  var currentAno = '';
+
+  function buildLegend() {
+    var bar = document.getElementById('map-leg-bar');
+    if (!bar) return;
+    bar.innerHTML = PALETTES[tipo].map(function (c) {
+      return '<div style="flex:1;background:' + c + '"></div>';
+    }).join('');
+    var anoEl = document.getElementById('map-leg-ano');
+    if (anoEl) anoEl.textContent = currentAno ? 'ano ' + currentAno : '';
+  }
+
+  function renderMap(data) {
+    var container = document.getElementById('hero-map');
+    if (!container || !cachedTopo) return;
+    container.innerHTML = '';
+
+    var W = 460, H = 400;
+    var objKey  = cachedTopo.objects.BRA
+      ? 'BRA'
+      : Object.keys(cachedTopo.objects)[0];
+    var featCol = topojson.feature(cachedTopo, cachedTopo.objects[objKey]);
+    var proj    = d3.geoMercator().fitSize([W, H], featCol);
+    var pathGen = d3.geoPath(proj);
+    var values  = Object.values(data).filter(function (v) { return v > 0; });
+    var scale   = d3.scaleQuantize(
+      [Math.min.apply(null, values), Math.max.apply(null, values)],
+      PALETTES[tipo]
+    );
+
+    var svg = d3.select('#hero-map').append('svg')
+      .attr('viewBox', '0 0 ' + W + ' ' + H)
+      .attr('width', '100%');
+
+    var tooltip = document.getElementById('hero-map-tooltip');
+    var mapWrap = container.parentElement;
+
+    svg.selectAll('path')
+      .data(featCol.features)
+      .join('path')
+        .attr('d', pathGen)
+        .attr('stroke', 'rgba(255,255,255,.15)')
+        .attr('stroke-width', 0.6)
+        .attr('fill', function (d) {
+          var name = d.properties.name || d.properties.Name || '';
+          var uf   = NAME_TO_UF[name] || '';
+          var val  = data[uf];
+          return (val != null && val > 0) ? scale(val) : '#2a2a2a';
+        })
+        .on('mousemove', function (evt, d) {
+          var name = d.properties.name || d.properties.Name || '';
+          var uf   = NAME_TO_UF[name] || '—';
+          var val  = data[uf] || 0;
+          var rect = mapWrap.getBoundingClientRect();
+          var x    = evt.clientX - rect.left + 14;
+          var y    = evt.clientY - rect.top  - 10;
+          tooltip.style.cssText = 'display:block;left:' + x + 'px;top:' + y + 'px;';
+          document.getElementById('mtt-name').textContent = name;
+          document.getElementById('mtt-uf').textContent   = uf !== '—' ? '(' + uf + ')' : '';
+          var valEl = document.getElementById('mtt-val');
+          valEl.textContent = fmt(val);
+          valEl.className   = 'map-tt-val ' + tipo.slice(0, 3);
+          d3.select(this).attr('stroke', 'rgba(255,255,255,.55)').attr('stroke-width', 1.6);
+        })
+        .on('mouseleave', function () {
+          tooltip.style.display = 'none';
+          d3.select(this).attr('stroke', 'rgba(255,255,255,.15)').attr('stroke-width', 0.6);
+        });
+
+    buildLegend();
+  }
+
+  function fetchAndRender() {
+    var spinner = document.getElementById('map-spinner');
+    if (spinner) spinner.style.display = 'flex';
+
+    fetch('/api/mapa/' + tipo)
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        cachedData[tipo] = json.data;
+        currentAno       = json.ano;
+        renderMap(json.data);
+      })
+      .catch(function () {})
+      .finally(function () {
+        if (spinner) spinner.style.display = 'none';
+      });
+  }
+
+  window.heroMapSetTipo = function (novoTipo) {
+    tipo = novoTipo;
+    document.getElementById('btn-rec').className =
+      'map-toggle-btn' + (tipo === 'receitas' ? ' active-rec' : '');
+    document.getElementById('btn-des').className =
+      'map-toggle-btn' + (tipo === 'despesas' ? ' active-des' : '');
+
+    if (cachedData[tipo]) {
+      renderMap(cachedData[tipo]);
+    } else {
+      fetchAndRender();
+    }
+  };
+
+  d3.json('https://cdn.jsdelivr.net/npm/datamaps@0.5.10/src/js/data/bra.topo.json')
+    .then(function (topo) {
+      cachedTopo = topo;
+      fetchAndRender();
+    })
+    .catch(function () {
+      var sp = document.getElementById('map-spinner');
+      if (sp) sp.style.display = 'none';
+    });
+})();
+</script>
 {% endblock %}

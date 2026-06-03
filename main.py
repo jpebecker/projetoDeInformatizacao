@@ -1,498 +1,326 @@
-import json, os,threading, time
+"""
+main.py — VizGov
+================
+Flask application: server-side rendered pages and AJAX endpoints.
+
+To populate the database before starting the server:
+    python extract.py --all --start 2015
+
+To run the server:
+    python main.py
+"""
+
+import json
+import os
+import threading
 from datetime import datetime
 
-import extract as extractor
+import extract
 from flask import Flask, jsonify, render_template, request
 
-# ==============================================================================
-# FLASK APPLICATION
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# APPLICATION
+# ─────────────────────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
 
+UFS_DISPONIVEIS = sorted(extract.ENTES.keys())
 
-# ==============================================================================
-# JINJA2 CUSTOM FILTER
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# JINJA2 FILTERS
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.template_filter("format_brl")
 def format_brl_filter(value):
-    """
-    Jinja2 filter: format a float as Brazilian currency string.
-
-    Usage in templates: {{ item.valor | format_brl }}
-
-    Args:
-        value: Numeric value (int, float, or str).
-
-    Returns:
-        str: e.g. "R$ 1.234.567,89"
-    """
+    """Format a float as a BRL currency string: R$ 1.234.567,89"""
     try:
         v = float(value)
-        formatted = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        return f"R$ {formatted}"
+        return "R$ " + f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     except (TypeError, ValueError):
         return "R$ 0,00"
 
-
-# ==============================================================================
-# GLOBAL TEMPLATE CONTEXT
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# GLOBAL JINJA2 CONTEXT
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.context_processor
 def inject_globals():
-    """Make shared variables globally available to all templates."""
-    return {
-        "current_year": extractor.CURRENT_YEAR
-    }
+    return {"current_year": extract.CURRENT_YEAR}
 
+# ─────────────────────────────────────────────────────────────────────────────
+# LOCAL DATABASE READER
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ==============================================================================
-# JSON LOADER (multi-year aware)
-# ==============================================================================
-
-def load_json(file_prefix: str, year: int):
+def _load_json(tipo: str, uf: str, year: int) -> tuple[list, str]:
     """
-    Load a collected JSON file for a specific prefix and year.
-
-    Args:
-        file_prefix (str): e.g. "receitas_BR"
-        year (int): Target year.
-
-    Returns:
-        tuple:
-            - list: Loaded data (empty list on failure)
-            - str: Last update timestamp or status message
+    Load a local JSON file for the given data type, entity, and year.
+    Returns (data, formatted_timestamp).
     """
-    base_directory = os.path.dirname(os.path.abspath(__file__))
-    file_name = f"{file_prefix}_{year}.json"
-    file_path = os.path.join(base_directory, "database", file_name)
-
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "database", uf.upper(), f"{tipo}_{year}.json"
+    )
     try:
-        if not os.path.exists(file_path):
-            return [], "Aguardando extração..."
+        if not os.path.exists(path):
+            return [], "Pending collection..."
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        ts = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%d/%m/%Y às %H:%M")
+        return data, ts
+    except Exception as e:
+        print(f"Error loading {path}: {e}")
+        return [], "Failed to load"
 
-        with open(file_path, "r", encoding="utf-8") as json_file:
-            data = json.load(json_file)
+# ─────────────────────────────────────────────────────────────────────────────
+# REQUEST HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
 
-        timestamp = os.path.getmtime(file_path)
-        formatted_timestamp = datetime.fromtimestamp(timestamp).strftime(
-            "%d/%m/%Y às %H:%M"
-        )
-        return data, formatted_timestamp
-
-    except Exception as error:
-        print(f"Error loading {file_name}: {error}")
-        return [], "Erro ao carregar arquivo"
-
-
-# ==============================================================================
-# YEAR RESOLUTION HELPER
-# ==============================================================================
-
-def resolve_year(request_args) -> int:
-    """
-    Extract and validate the 'ano' query parameter.
-    Falls back to CURRENT_YEAR if missing or invalid.
-    """
+def _year(args) -> int:
+    """Parse and validate the 'ano' query parameter; fall back to the current year."""
     try:
-        year = int(request_args.get("ano", extractor.CURRENT_YEAR))
-        if 2014 <= year <= extractor.CURRENT_YEAR:
-            return year
+        y = int(args.get("ano", extract.CURRENT_YEAR))
+        if 2015 <= y <= extract.CURRENT_YEAR:
+            return y
     except (ValueError, TypeError):
         pass
-    return extractor.CURRENT_YEAR
+    return extract.CURRENT_YEAR
 
+def _uf(args) -> str:
+    """Parse and validate the 'uf' query parameter; fall back to 'BR'."""
+    uf = args.get("uf", "BR").upper()
+    return uf if uf in extract.ENTES else "BR"
 
-# ==============================================================================
-# HOME AND ABOUT ROUTES
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# BASE ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def home():
-    """Render landing page."""
     return render_template("index.html")
-
 
 @app.route("/sobre")
 def about():
-    """Render about page."""
     return render_template("about.html")
 
-
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
 # API — AVAILABLE YEARS
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/anos/<tipo>")
-def available_years(tipo: str):
-    """
-    Return the list of years for which collected data exists.
+def api_anos(tipo: str):
+    if tipo not in ("receitas", "despesas"):
+        return jsonify({"error": "Invalid type"}), 400
+    anos: set[int] = set()
+    for uf in UFS_DISPONIVEIS:
+        anos |= set(extract.get_available_years(tipo, uf))
+    return jsonify({"anos": sorted(anos, reverse=True)})
 
-    Example:
-        GET /api/anos/receitas  →  {"anos": [2022, 2023, 2024, 2025]}
-    """
-    valid_tipos = {
-        "receitas":      ("receitas_BR",      "receitas_SC"),
-        "despesas":      ("despesas_BR",      "despesas_SC"),
-        "investimentos": ("investimentos_BR",  "investimentos_SC"),
-    }
+# ─────────────────────────────────────────────────────────────────────────────
+# API — CHOROPLETH MAP
+# ─────────────────────────────────────────────────────────────────────────────
 
-    if tipo not in valid_tipos:
-        return jsonify({"error": "Tipo inválido."}), 400
+@app.route("/api/mapa/<tipo>")
+def api_mapa(tipo: str):
+    if tipo not in ("receitas", "despesas"):
+        return jsonify({"error": "Invalid type"}), 400
 
-    prefix_br, prefix_sc = valid_tipos[tipo]
-    years_br = set(extractor.get_available_years(prefix_br))
-    years_sc = set(extractor.get_available_years(prefix_sc))
-    available = sorted(years_br | years_sc, reverse=True)
+    if request.args.get("ano"):
+        year = _year(request.args)
+    else:
+        # Default to the most recent year available in the database
+        anos: set[int] = set()
+        for uf in UFS_DISPONIVEIS:
+            anos |= set(extract.get_available_years(tipo, uf))
+        year = max(anos) if anos else extract.CURRENT_YEAR
 
-    return jsonify({"anos": available})
+    fn_total = extract.total_receitas if tipo == "receitas" else extract.total_despesas
+    result = {}
+    for uf in UFS_DISPONIVEIS:
+        if uf == "BR":
+            continue  # federal aggregate is excluded from the state-level map
+        data, _ = _load_json(tipo, uf, year)
+        t = fn_total(data)
+        if t > 0:
+            result[uf] = round(t, 2)
 
+    return jsonify({"ano": year, "tipo": tipo, "data": result})
 
-# ==============================================================================
-# API — CHART DATA (AJAX endpoints)
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# API — REVENUES
+# Response shape expected by receita.html (JS fetchData):
+#   { ano, uf, data_atualizacao,
+#     uf_data: { labels, values, total, total_txt, tabela },
+#     total_br, total_br_txt }
+#
+# tabela items: {"ORIGEM RECEITA": "...", "VALOR REALIZADO": 123.45}
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/receitas")
 def api_receitas():
-    """Return revenues chart data for a given year as JSON."""
-    year = resolve_year(request.args)
+    year        = _year(request.args)
+    uf          = _uf(request.args)
+    uf_data, ts = _load_json("receitas", uf,   year)
+    br_data, _  = _load_json("receitas", "BR", year)
 
-    brazil_data, update_date = load_json("receitas_BR", year)
-    santa_catarina_data, _ = load_json("receitas_SC", year)
-
-    labels_br, values_br, total_br = extractor.process_chart_data(
-        brazil_data, "ORIGEM RECEITA", "VALOR REALIZADO"
-    )
-    labels_sc, values_sc, total_sc = extractor.process_chart_data(
-        santa_catarina_data, "nmorigem", "vlreceitarealizadaliquida"
-    )
+    labels, values, total_uf = extract.chart_receitas(uf_data)
+    total_br = extract.total_receitas(br_data)
 
     return jsonify({
-        "ano": year,
-        "data_atualizacao": update_date,
-        "br": {
-            "labels": labels_br, "values": values_br,
-            "total_txt": extractor.format_compact_currency(total_br),
-            "total": total_br, "tabela": brazil_data[:10]
+        "ano":              year,
+        "uf":               uf,
+        "data_atualizacao": ts,
+        "uf_data": {
+            "labels":    labels,
+            "values":    values,
+            "total":     total_uf,
+            "total_txt": extract.format_currency(total_uf),
+            "tabela":    uf_data,  # keys: "ORIGEM RECEITA", "VALOR REALIZADO"
         },
-        "sc": {
-            "labels": labels_sc, "values": values_sc,
-            "total_txt": extractor.format_compact_currency(total_sc),
-            "total": total_sc, "tabela": santa_catarina_data[:10]
-        },
-        "esfera": [total_br, total_sc]
+        "total_br":     total_br,
+        "total_br_txt": extract.format_currency(total_br),
     })
 
+# ─────────────────────────────────────────────────────────────────────────────
+# API — EXPENDITURES
+# Response shape expected by despesa.html (JS fetchData):
+#   { ano, uf, data_atualizacao,
+#     uf_data: { labels, values, total, total_txt, tabela },
+#     total_br, total_br_txt }
+#
+# tabela items: {"funcao": "...", "valor": 123.45}
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/despesas")
 def api_despesas():
-    """Return expenses chart data for a given year as JSON."""
-    year = resolve_year(request.args)
+    year        = _year(request.args)
+    uf          = _uf(request.args)
+    uf_data, ts = _load_json("despesas", uf,   year)
+    br_data, _  = _load_json("despesas", "BR", year)
 
-    brazil_data, update_date = load_json("despesas_BR", year)
-    santa_catarina_data, _ = load_json("despesas_SC", year)
-
-    brazil_aggregated = {}
-    brazil_total = 0.0
-    for item in brazil_data:
-        fn = item.get("funcao", "Outros")
-        value = extractor.parse_currency_value(item.get("pago", 0))
-        brazil_aggregated[fn] = brazil_aggregated.get(fn, 0) + value
-        brazil_total += value
-
-    labels_br, values_br, table_br = extractor.process_rank_data(
-        brazil_aggregated, limit=9
-    )
-
-    sc_aggregated = {}
-    sc_total = 0.0
-    for item in santa_catarina_data:
-        fn = item.get("descricao", "Outros")
-        value = extractor.parse_currency_value(item.get("vlpago", 0))
-        sc_aggregated[fn] = sc_aggregated.get(fn, 0) + value
-        sc_total += value
-
-    labels_sc, values_sc, table_sc = extractor.process_rank_data(
-        sc_aggregated, limit=9
-    )
+    labels, values, total_uf = extract.chart_despesas(uf_data)
+    total_br = extract.total_despesas(br_data)
 
     return jsonify({
-        "ano": year,
-        "data_atualizacao": update_date,
-        "br": {
-            "labels": labels_br, "values": values_br,
-            "total_txt": extractor.format_compact_currency(brazil_total),
-            "total": brazil_total, "tabela": table_br
+        "ano":              year,
+        "uf":               uf,
+        "data_atualizacao": ts,
+        "uf_data": {
+            "labels":    labels,
+            "values":    values,
+            "total":     total_uf,
+            "total_txt": extract.format_currency(total_uf),
+            "tabela":    uf_data,  # keys: "funcao", "valor"
         },
-        "sc": {
-            "labels": labels_sc, "values": values_sc,
-            "total_txt": extractor.format_compact_currency(sc_total),
-            "total": sc_total, "tabela": table_sc
-        },
-        "esfera": [brazil_total, sc_total]
+        "total_br":     total_br,
+        "total_br_txt": extract.format_currency(total_br),
     })
 
-
-@app.route("/api/investimentos")
-def api_investimentos():
-    """Return investments chart data for a given year as JSON."""
-    year = resolve_year(request.args)
-
-    brazil_data, update_date = load_json("investimentos_BR", year)
-    santa_catarina_data, _ = load_json("investimentos_SC", year)
-
-    def process(data_list):
-        aggregated = {}
-        total = 0.0
-        for item in data_list:
-            fn = item.get("nome_funcao", "Não informado")
-            value = extractor.parse_currency_value(item.get("valor_realizado", 0))
-            aggregated[fn] = aggregated.get(fn, 0) + value
-            total += value
-
-        sorted_items = sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
-        labels = [k for k, _ in sorted_items[:9]]
-        values = [v for _, v in sorted_items[:9]]
-
-        if len(sorted_items) > 9:
-            labels.append("Outros")
-            values.append(sum(v for _, v in sorted_items[9:]))
-
-        table = [{"nome": k, "valor": v} for k, v in sorted_items]
-        return labels, values, total, table
-
-    labels_br, values_br, total_br, table_br = process(brazil_data)
-    labels_sc, values_sc, total_sc, table_sc = process(santa_catarina_data)
-
-    return jsonify({
-        "ano": year,
-        "data_atualizacao": update_date,
-        "br": {
-            "labels": labels_br, "values": values_br,
-            "total_txt": extractor.format_compact_currency(total_br),
-            "total": total_br, "tabela": table_br
-        },
-        "sc": {
-            "labels": labels_sc, "values": values_sc,
-            "total_txt": extractor.format_compact_currency(total_sc),
-            "total": total_sc, "tabela": table_sc
-        },
-        "esfera": [total_br, total_sc]
-    })
-
-
-# ==============================================================================
-# API — HISTORICAL TOTALS (trend charts)
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# API — HISTORICAL TIME SERIES
+# Response shape: { anos: [...], br: [...], uf: [...], uf_label: "SC" }
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/historico/<tipo>")
 def api_historico(tipo: str):
-    """
-    Return year-over-year totals for trend charts.
+    if tipo not in ("receitas", "despesas"):
+        return jsonify({"error": "Invalid type"}), 400
 
-    Returns JSON: {"anos": [...], "br": [...], "sc": [...]}
-    """
-    configs = {
-        "receitas":      ("receitas_BR",      "receitas_SC",      "VALOR REALIZADO",  "vlreceitarealizadaliquida"),
-        "despesas":      ("despesas_BR",      "despesas_SC",      "pago",             "vlpago"),
-        "investimentos": ("investimentos_BR",  "investimentos_SC",  "valor_realizado",  "valor_realizado"),
-    }
+    uf       = _uf(request.args)
+    fn_total = extract.total_receitas if tipo == "receitas" else extract.total_despesas
 
-    if tipo not in configs:
-        return jsonify({"error": "Tipo inválido."}), 400
-
-    prefix_br, prefix_sc, key_br, key_sc = configs[tipo]
-
-    all_years = sorted(
-        set(extractor.get_available_years(prefix_br))
-        | set(extractor.get_available_years(prefix_sc))
+    anos = sorted(
+        set(extract.get_available_years(tipo, "BR")) |
+        set(extract.get_available_years(tipo, uf))
     )
 
-    totals_br, totals_sc = [], []
+    br_vals, uf_vals = [], []
+    for y in anos:
+        d_br, _ = _load_json(tipo, "BR", y)
+        d_uf, _ = _load_json(tipo, uf,   y)
+        br_vals.append(fn_total(d_br))
+        uf_vals.append(fn_total(d_uf))
 
-    for year in all_years:
-        data_br, _ = load_json(prefix_br, year)
-        totals_br.append(sum(
-            extractor.parse_currency_value(item.get(key_br, 0)) for item in data_br
-        ))
+    return jsonify({"anos": anos, "br": br_vals, "uf": uf_vals, "uf_label": uf})
 
-        data_sc, _ = load_json(prefix_sc, year)
-        totals_sc.append(sum(
-            extractor.parse_currency_value(item.get(key_sc, 0)) for item in data_sc
-        ))
+# ─────────────────────────────────────────────────────────────────────────────
+# SERVER-SIDE RENDERED ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
 
-    return jsonify({"anos": all_years, "br": totals_br, "sc": totals_sc})
+def _render_panel(tipo: str, template: str, year: int, uf: str):
+    """
+    Shared rendering logic for the Revenues and Expenditures panels.
+    Loads local JSON, computes chart data and totals, and passes them to the template.
+    """
+    uf_data, ts = _load_json(tipo, uf,   year)
+    br_data, _  = _load_json(tipo, "BR", year)
 
+    if tipo == "receitas":
+        labels, values, total_uf = extract.chart_receitas(uf_data)
+        total_br = extract.total_receitas(br_data)
+    else:
+        labels, values, total_uf = extract.chart_despesas(uf_data)
+        total_br = extract.total_despesas(br_data)
 
-# ==============================================================================
-# DASHBOARD PAGE ROUTES (SSR initial load)
-# ==============================================================================
+    anos = sorted(
+        set(extract.get_available_years(tipo, "BR")) |
+        set(extract.get_available_years(tipo, uf)),
+        reverse=True,
+    )
+    if not anos:
+        anos = [extract.CURRENT_YEAR]
+
+    return render_template(
+        template,
+        ano_selecionado  = year,
+        anos_disponiveis = anos,
+        uf_selecionada   = uf,
+        ufs_disponiveis  = UFS_DISPONIVEIS,
+        labels_uf        = labels,
+        values_uf        = values,
+        total_uf_txt     = extract.format_currency(total_uf),
+        total_br         = total_br,
+        total_br_txt     = extract.format_currency(total_br),
+        lista_dados_uf   = uf_data,
+        data_atualizacao = ts,
+    )
+
 
 @app.route("/receitas")
 def revenues():
-    """Render revenues dashboard."""
-    year = resolve_year(request.args)
-    brazil_data, update_date = load_json("receitas_BR", year)
-    santa_catarina_data, _ = load_json("receitas_SC", year)
-
-    labels_br, values_br, total_br = extractor.process_chart_data(
-        brazil_data, "ORIGEM RECEITA", "VALOR REALIZADO"
-    )
-    labels_sc, values_sc, total_sc = extractor.process_chart_data(
-        santa_catarina_data, "nmorigem", "vlreceitarealizadaliquida"
-    )
-
-    anos_disponiveis = sorted(
-        set(extractor.get_available_years("receitas_BR"))
-        | set(extractor.get_available_years("receitas_SC")),
-        reverse=True
-    )
-
-    return render_template(
-        "receita.html",
-        ano_selecionado=year,
-        anos_disponiveis=anos_disponiveis,
-        labels_br=labels_br, values_br=values_br,
-        total_br_txt=extractor.format_compact_currency(total_br),
-        labels_sc=labels_sc, values_sc=values_sc,
-        total_sc_txt=extractor.format_compact_currency(total_sc),
-        values_esfera=[total_br, total_sc],
-        lista_dados_br=brazil_data[:10],
-        lista_dados_sc=santa_catarina_data[:10],
-        data_atualizacao=update_date
-    )
+    return _render_panel("receitas", "receita.html", _year(request.args), _uf(request.args))
 
 
 @app.route("/despesas")
 def expenses():
-    """Render expenses dashboard."""
-    year = resolve_year(request.args)
-    brazil_data, update_date = load_json("despesas_BR", year)
-    santa_catarina_data, _ = load_json("despesas_SC", year)
+    return _render_panel("despesas", "despesa.html", _year(request.args), _uf(request.args))
 
-    brazil_aggregated = {}
-    brazil_total = 0.0
-    for item in brazil_data:
-        fn = item.get("funcao", "Outros")
-        value = extractor.parse_currency_value(item.get("pago", 0))
-        brazil_aggregated[fn] = brazil_aggregated.get(fn, 0) + value
-        brazil_total += value
+# ─────────────────────────────────────────────────────────────────────────────
+# STARTUP ETL  (collect missing data for the current year on server start)
+# ─────────────────────────────────────────────────────────────────────────────
 
-    labels_br, values_br, brazil_table = extractor.process_rank_data(brazil_aggregated, limit=9)
-
-    sc_aggregated = {}
-    sc_total = 0.0
-    for item in santa_catarina_data:
-        fn = item.get("descricao", "Outros")
-        value = extractor.parse_currency_value(item.get("vlpago", 0))
-        sc_aggregated[fn] = sc_aggregated.get(fn, 0) + value
-        sc_total += value
-
-    labels_sc, values_sc, sc_table = extractor.process_rank_data(sc_aggregated, limit=9)
-
-    anos_disponiveis = sorted(
-        set(extractor.get_available_years("despesas_BR"))
-        | set(extractor.get_available_years("despesas_SC")),
-        reverse=True
-    )
-
-    return render_template(
-        "despesa.html",
-        ano_selecionado=year,
-        anos_disponiveis=anos_disponiveis,
-        labels_br=labels_br, values_br=values_br,
-        total_br_txt=extractor.format_compact_currency(brazil_total),
-        lista_dados_br=brazil_table,
-        labels_sc=labels_sc, values_sc=values_sc,
-        total_sc_txt=extractor.format_compact_currency(sc_total),
-        lista_dados_sc=sc_table,
-        values_esfera=[brazil_total, sc_total],
-        data_atualizacao=update_date
-    )
-
-
-@app.route("/investimentos")
-def investments():
-    """Render investments dashboard."""
-    year = resolve_year(request.args)
-    brazil_data, update_date = load_json("investimentos_BR", year)
-    santa_catarina_data, _ = load_json("investimentos_SC", year)
-
-    def process(data_list):
-        aggregated = {}
-        total = 0.0
-        for item in data_list:
-            fn = item.get("nome_funcao", "Não informado")
-            value = extractor.parse_currency_value(item.get("valor_realizado", 0))
-            aggregated[fn] = aggregated.get(fn, 0) + value
-            total += value
-        sorted_items = sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
-        labels = [k for k, _ in sorted_items[:9]]
-        values = [v for _, v in sorted_items[:9]]
-        if len(sorted_items) > 9:
-            labels.append("Outros")
-            values.append(sum(v for _, v in sorted_items[9:]))
-        table = [{"nome": k, "valor": v} for k, v in sorted_items]
-        return labels, values, total, table
-
-    labels_br, values_br, total_br, table_br = process(brazil_data)
-    labels_sc, values_sc, total_sc, table_sc = process(santa_catarina_data)
-
-    anos_disponiveis = sorted(
-        set(extractor.get_available_years("investimentos_BR"))
-        | set(extractor.get_available_years("investimentos_SC")),
-        reverse=True
-    )
-
-    return render_template(
-        "invest.html",
-        ano_selecionado=year,
-        anos_disponiveis=anos_disponiveis,
-        labels_br=labels_br, values_br=values_br,
-        total_br_txt=extractor.format_compact_currency(total_br),
-        lista_tabela_br=table_br,
-        labels_sc=labels_sc, values_sc=values_sc,
-        total_sc_txt=extractor.format_compact_currency(total_sc),
-        lista_tabela_sc=table_sc,
-        values_esfera=[total_br, total_sc],
-        data_atualizacao=update_date
-    )
-
-
-# ==============================================================================
-# PARALLEL ETL — CURRENT YEAR
-# ==============================================================================
-
-def run_parallel_extraction() -> None:
-    """Execute all ETL processes simultaneously for the current year."""
-    print(f"Starting ETL for year {extractor.CURRENT_YEAR}")
-    start_time = time.time()
-
-    threads = [
-        threading.Thread(target=extractor.collect_revenues,
-                         kwargs={"year": extractor.CURRENT_YEAR}),
-        threading.Thread(target=extractor.collect_investments,
-                         kwargs={"year": extractor.CURRENT_YEAR}),
-        threading.Thread(target=extractor.collect_expenses_by_area,
-                         kwargs={"year": extractor.CURRENT_YEAR}),
+def _startup_etl() -> None:
+    year = extract.CURRENT_YEAR
+    missing = [
+        uf for uf in UFS_DISPONIVEIS
+        if not extract.file_exists("receitas", uf, year)
+        or not extract.file_exists("despesas", uf, year)
     ]
+    if not missing:
+        print(f"[VizGov] Data for {year} is complete — no collection required.")
+        return
+    print(f"[VizGov] Collecting {year} data in background for: {missing}")
+    t = threading.Thread(
+        target=extract.collect,
+        kwargs={"ufs": missing, "years": [year], "force": False},
+        daemon=True,
+    )
+    t.start()
 
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-
-    print(f"ETL completed in {time.time() - start_time:.2f}s")
-
-
-# ==============================================================================
-# ENTRY POINT
-# ==============================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# RUN
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        run_parallel_extraction()
-
+        _startup_etl()
     app.run(debug=True)

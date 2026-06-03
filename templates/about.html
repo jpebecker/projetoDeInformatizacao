@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = 'about' %}
 
-{% block title %}Sobre — FiscalBR{% endblock %}
+{% block title %}Sobre — VizGov{% endblock %}
 
 {% block head %}
 <style>
@@ -40,8 +40,7 @@
   .timeline-item::before {
     content: "";
     position: absolute;
-    left: 0;
-    top: 8px;
+    left: 0; top: 8px;
     width: 10px; height: 10px;
     border-radius: 50%;
     background: #0d6efd;
@@ -49,10 +48,8 @@
   .timeline-item::after {
     content: "";
     position: absolute;
-    left: 4px;
-    top: 18px;
-    bottom: 0;
-    width: 2px;
+    left: 4px; top: 18px;
+    bottom: 0; width: 2px;
     background: #dee2e6;
   }
   .timeline-item:last-child::after { display: none; }
@@ -76,6 +73,38 @@
     background: #f0f5ff;
   }
 
+  .feature-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    border: 1px solid #dee2e6;
+    border-radius: 2rem;
+    padding: .3rem .9rem;
+    font-size: .8rem;
+    color: #495057;
+    background: #fff;
+  }
+
+  .stat-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+  }
+  .stat-card .stat-num {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #212529;
+  }
+  .stat-card .stat-lbl {
+    font-size: .72rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-top: .25rem;
+  }
+
   .section-divider { border-color: #e9ecef; margin: 3rem 0; }
 </style>
 {% endblock %}
@@ -88,20 +117,65 @@
 <section class="about-hero">
   <div class="container position-relative">
     <div class="row">
-      <div class="col-lg-7">
-        <p class="text-primary-emphasis mb-2" style="font-size:.85rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#6ea8fe !important;">
+      <div class="col-lg-8">
+        <p class="mb-2" style="font-size:.85rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#6ea8fe;">
           Sobre o projeto
         </p>
-        <h1 class="display-5 fw-bold mb-3">FiscalBR</h1>
-        <p class="lead" style="color:rgba(255,255,255,.65); max-width:55ch;">
-          Uma ferramenta de visualização de dados fiscais públicos, construída
-          com Python e Flask, cobrindo receitas, despesas e investimentos
-          do governo federal e do estado de Santa Catarina.
+        <h1 class="display-5 fw-bold mb-3">VizGov</h1>
+        <p class="lead mb-4" style="color:rgba(255,255,255,.65); max-width:58ch;">
+          Plataforma de visualização de dados fiscais públicos do Brasil — receitas e
+          despesas do governo federal e dos 27 estados, cobrindo séries históricas
+          de 2015 a {{ current_year }} via API oficial do SICONFI (Tesouro Nacional).
         </p>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="feature-pill" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.65);">
+            <i class="bi bi-map text-info"></i> Mapa coroplético interativo
+          </span>
+          <span class="feature-pill" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.65);">
+            <i class="bi bi-clock-history text-warning"></i> Série histórica 2015–{{ current_year }}
+          </span>
+          <span class="feature-pill" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.15); color:rgba(255,255,255,.65);">
+            <i class="bi bi-lightning text-success"></i> Dados em tempo real via AJAX
+          </span>
+        </div>
       </div>
     </div>
   </div>
 </section>
+
+<!-- ================================================================
+     STATS STRIP
+================================================================ -->
+<div style="background:#f8f9fa; border-bottom:1px solid #e9ecef; padding:2rem 0;">
+  <div class="container">
+    <div class="row g-3 justify-content-center text-center">
+      <div class="col-6 col-sm-3">
+        <div class="stat-card">
+          <div class="stat-num">27</div>
+          <div class="stat-lbl">Estados + União</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="stat-card">
+          <div class="stat-num">2</div>
+          <div class="stat-lbl">Painéis analíticos</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="stat-card">
+          <div class="stat-num">10+</div>
+          <div class="stat-lbl">Anos de histórico</div>
+        </div>
+      </div>
+      <div class="col-6 col-sm-3">
+        <div class="stat-card">
+          <div class="stat-num">100%</div>
+          <div class="stat-lbl">Dados governamentais</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ================================================================
      MAIN CONTENT
@@ -114,46 +188,71 @@
 
       <!-- Origin -->
       <h4 class="fw-bold mb-3">Origem do projeto</h4>
+
       <div class="timeline-item">
         <p class="fw-semibold mb-1">2025 — Trabalho acadêmico</p>
         <p class="text-muted small mb-0">
           O projeto nasceu como trabalho final da disciplina
           <strong>CIN7405 — Projeto de Informatização</strong>
           da Universidade Federal de Santa Catarina (UFSC). O objetivo era
-          propor uma informatização de um fluxo informacional real. A escolha
-          foi o Portal da Transparência: dados públicos, volume elevado,
+          propor a informatização de um fluxo informacional real. A escolha
+          foi o Portal da Transparência: dados públicos, volume elevado e
           navegação complexa. A solução encurtou o caminho entre os dados
-          brutos e a compreensão do cidadão.
+          brutos do SICONFI e a compreensão do cidadão.
         </p>
       </div>
 
       <div class="timeline-item">
-        <p class="fw-semibold mb-1">2025–{{ current_year }} — Evolução para portfólio</p>
+        <p class="fw-semibold mb-1">{{ current_year }} — VizGov</p>
         <p class="text-muted small mb-0">
-          Após a entrega acadêmica, o projeto foi reestruturado como portfólio
-          pessoal de desenvolvimento. As principais adições foram: suporte a
-          múltiplos anos (série histórica), endpoints AJAX para troca de dados
-          sem reload, script de backfill histórico e refatoração completa da
-          arquitetura de templates.
+          Após a entrega acadêmica, o projeto migrou para a API oficial do
+          SICONFI (Tesouro Nacional), expandiu a cobertura para os 27 estados
+          e a União Federal (<code>BR</code>), e adicionou série histórica com
+          suporte a backfill por linha de comando via <code>extract.py</code>
+          (<code>--all --start 2015</code>), com throttle entre requisições e
+          detecção automática de arquivos já existentes para evitar retrabalho.
+          Os dashboards passaram a funcionar via AJAX — sem recarregar a página
+          ao trocar UF ou ano. O projeto foi renomeado para <strong>VizGov</strong>
+          e expandido com mapa coroplético interativo (D3.js + TopoJSON) na página
+          inicial, exibindo a distribuição de receitas e despesas por estado.
+          O seletor de UF foi redesenhado com grid visual, busca por nome/sigla
+          e navegação por teclado.
         </p>
       </div>
 
       <hr class="section-divider">
 
-      <!-- How it was built -->
-      <h4 class="fw-bold mb-3">Como foi construído</h4>
+      <!-- Architecture -->
+      <h4 class="fw-bold mb-3">Como funciona</h4>
       <p class="text-muted">
-        O pipeline ETL coleta dados diretamente das APIs do Portal da Transparência
-        federal e do portal de Santa Catarina. Os arquivos são processados com
-        <strong>pandas</strong>, agregados por categoria e salvos em JSONs anuais.
-        O Flask serve os dashboards com Chart.js, com troca de ano e esfera
-        via chamadas AJAX — sem recarregar a página.
+        O pipeline ETL (<code>extract.py</code>) coleta os dados diretamente da API REST do <strong>SICONFI</strong>
+        (Sistema de Informações Contábeis e Fiscais do Setor Público Brasileiro),
+        mantido pelo Tesouro Nacional. Os relatórios RREO são processados com
+        <strong>pandas</strong> — receitas do Anexo 03 (categorias de receita corrente,
+        somando as colunas mensais do ano para evitar a janela móvel de 12 meses)
+        e despesas do Anexo 02 (liquidadas até o bimestre, por função orçamentária)
+        — e salvos como JSONs anuais em subpastas por estado
+        (<code>database/{UF}/receitas_YYYY.json</code> e <code>database/{UF}/despesas_YYYY.json</code>).
       </p>
       <p class="text-muted">
-        Para coleta histórica, um script separado (<code>collect_history.py</code>)
-        aceita um intervalo de anos por linha de comando e preenche o acervo local
-        respeitando um throttle entre requisições. Arquivos já existentes são
-        ignorados por padrão.
+        O Flask serve os dois painéis analíticos via SSR no carregamento inicial
+        e complementa com endpoints AJAX (<code>/api/receitas</code>,
+        <code>/api/despesas</code>, <code>/api/historico/&lt;tipo&gt;</code>,
+        <code>/api/mapa/&lt;tipo&gt;</code>, <code>/api/anos/&lt;tipo&gt;</code>)
+        para atualizações sem reload. O mapa da página
+        inicial consome <code>/api/mapa/&lt;tipo&gt;</code>, que agrega os totais
+        de todos os estados e retorna o ano mais recente com dados disponíveis.
+        Ao subir o servidor, um thread daemon verifica se os dados do ano corrente
+        já existem e os coleta automaticamente em background caso faltem.
+      </p>
+      <p class="text-muted">
+        Para backfill histórico, o script <code>extract.py</code> pode ser executado
+        standalone pela CLI com os argumentos <code>--all --start 2015</code> para
+        coletar todos os entes desde 2015, ou <code>--ufs SC SP --anos 2023 2024</code>
+        para coletas pontuais. O flag <code>--force</code> sobrescreve arquivos existentes.
+        Para o ano corrente, o script detecta automaticamente o melhor bimestre disponível
+        na API (publicação costuma ter 1 bimestre de atraso) e cai em cascata até
+        o bimestre 1 se necessário.
       </p>
 
       <hr class="section-divider">
@@ -165,7 +264,9 @@
         <span class="tech-badge"><i class="bi bi-capsule text-success"></i> Flask</span>
         <span class="tech-badge"><i class="bi bi-table text-info"></i> pandas</span>
         <span class="tech-badge"><i class="bi bi-bar-chart text-primary"></i> Chart.js</span>
-        <span class="tech-badge"><i class="bi bi-bootstrap text-purple"></i> Bootstrap 5</span>
+        <span class="tech-badge"><i class="bi bi-globe2 text-danger"></i> D3.js</span>
+        <span class="tech-badge"><i class="bi bi-map text-secondary"></i> TopoJSON</span>
+        <span class="tech-badge"><i class="bi bi-bootstrap" style="color:#7952b3;"></i> Bootstrap 5</span>
         <span class="tech-badge"><i class="bi bi-filetype-json text-secondary"></i> JSON storage</span>
         <span class="tech-badge"><i class="bi bi-cloud-download text-danger"></i> requests</span>
       </div>
@@ -183,42 +284,68 @@
             <i class="bi bi-person-fill text-white fs-4"></i>
           </div>
           <div>
-            <!-- PREENCHA: seu nome completo -->
             <h5 class="mb-0 fw-bold">João Pedro Becker Schneider</h5>
-            <!-- PREENCHA: sua descrição (ex: "Estudante de Ciência da Informação — UFSC") -->
             <p class="text-muted small mb-0">Ciência da Informação — UFSC</p>
           </div>
         </div>
 
-        <!-- PREENCHA: uma frase curta sobre você / motivação -->
         <p class="text-muted small">
-          Interessado na intersecção entre dados, tecnologia e acesso à informação pública.
-          Este projeto é parte do meu portfólio de desenvolvimento pessoal.
+          Interessado na intersecção entre dados, tecnologia e acesso à
+          informação pública. VizGov é parte do meu portfólio de
+          desenvolvimento — construído com dados reais, código aberto e
+          sem dependência de infraestrutura paga.
         </p>
 
         <hr>
 
-        <!-- Contact links — preencha os hrefs -->
         <div class="d-flex flex-column gap-2">
-
-          <!-- GitHub -->
           <a href="https://github.com/jpebecker" target="_blank" rel="noopener" class="contact-link">
             <i class="bi bi-github fs-5"></i>
             <span>GitHub</span>
           </a>
-
-          <!-- LinkedIn -->
           <a href="https://linkedin.com/in/jpebecker" target="_blank" rel="noopener" class="contact-link">
             <i class="bi bi-linkedin fs-5 text-primary"></i>
             <span>LinkedIn</span>
           </a>
-
-          <!-- E-mail (opcional) -->
           <a href="mailto:jpebecker@gmail.com" class="contact-link">
             <i class="bi bi-envelope fs-5 text-secondary"></i>
             <span>E-mail</span>
           </a>
+        </div>
+      </div>
 
+      <!-- Features card -->
+      <div class="card border-0 bg-light rounded-4 p-4 mb-4">
+        <h6 class="fw-bold mb-3">Funcionalidades</h6>
+        <div class="d-flex flex-column gap-2" style="font-size:.85rem; color:#495057;">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-map text-primary"></i>
+            <span>Mapa coroplético interativo por estado</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-bar-chart-line text-success"></i>
+            <span>Painéis de Receitas e Despesas com gráficos</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-warning"></i>
+            <span>Série histórica 2015–{{ current_year }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-search text-secondary"></i>
+            <span>Seletor de UF com busca em tempo real</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-repeat text-info"></i>
+            <span>Atualização AJAX sem reload de página</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-terminal text-dark"></i>
+            <span>Backfill histórico via <code>extract.py</code> CLI</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-stars text-warning"></i>
+            <span>Coleta automática em background no startup</span>
+          </div>
         </div>
       </div>
 
@@ -226,20 +353,18 @@
       <div class="card border-0 bg-light rounded-4 p-4">
         <h6 class="fw-bold mb-3">Fontes de dados</h6>
         <div class="d-flex flex-column gap-2">
-          <a href="https://portaldatransparencia.gov.br" target="_blank" rel="noopener"
-             class="contact-link">
+          <a href="https://siconfi.tesouro.gov.br" target="_blank" rel="noopener" class="contact-link">
             <i class="bi bi-globe2 text-success"></i>
-            <span>Portal da Transparência Federal</span>
+            <span>SICONFI — Tesouro Nacional</span>
           </a>
-          <a href="https://transparencia.sc.gov.br" target="_blank" rel="noopener"
-             class="contact-link">
-            <i class="bi bi-globe2 text-primary"></i>
-            <span>Portal da Transparência — SC</span>
+          <a href="https://apidatalake.tesouro.gov.br/docs/siconfi/" target="_blank" rel="noopener" class="contact-link">
+            <i class="bi bi-code-slash text-primary"></i>
+            <span>API DataLake — Tesouro Nacional</span>
           </a>
         </div>
         <p class="text-muted small mt-3 mb-0">
-          Todos os dados são públicos e disponibilizados pelos respectivos
-          portais governamentais. O FiscalBR não produz nem modifica os dados,
+          Todos os dados são públicos e disponibilizados pelo Tesouro Nacional
+          via SICONFI. O VizGov não produz nem modifica os dados —
           apenas os coleta, processa e exibe.
         </p>
       </div>

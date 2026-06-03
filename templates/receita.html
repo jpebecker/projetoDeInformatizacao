@@ -1,328 +1,437 @@
 {% extends "base.html" %}
 {% set active_page = 'receitas' %}
 
-{% block title %}Receitas — FiscalBR{% endblock %}
+{% block title %}Receitas — VizGov{% endblock %}
 
 {% block head %}
 <style>
-  .chart-box {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-  }
-  .chart-container-large { position: relative; height: 350px; width: 100%; }
-  .chart-container-small { position: relative; height: 250px; width: 100%; }
-  .chart-container-trend { position: relative; height: 280px; width: 100%; }
+  .chart-box { background:white; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.05); margin-bottom:20px; }
+  .chart-container-large { position:relative; height:350px; width:100%; }
+  .chart-container-small { position:relative; height:250px; width:100%; }
+  .chart-container-trend { position:relative; height:280px; width:100%; }
+  #loading-overlay { display:none; position:fixed; inset:0; background:rgba(255,255,255,.7); z-index:9999; align-items:center; justify-content:center; }
+  #loading-overlay.active { display:flex; }
 
-  #loading-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(255,255,255,0.7);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
+  /* Dropdown UF customizado */
+  .uf-dropdown { position: relative; display: inline-block; }
+  .uf-dropdown-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1.5px solid #198754; background: rgba(25,135,84,.08); color: #198754;
+    border-radius: 20px; padding: 5px 14px 5px 12px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all .2s; min-width: 200px; justify-content: space-between;
   }
-  #loading-overlay.active { display: flex; }
+  .uf-dropdown-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(25,135,84,.2); }
+  .uf-dropdown-icon { font-size: 11px; opacity: .7; }
+  .uf-dropdown-arrow { font-size: 10px; opacity: .6; transition: transform .2s; }
+  .uf-dropdown.open .uf-dropdown-arrow { transform: rotate(180deg); }
+
+  .uf-dropdown-menu {
+    position: absolute; top: calc(100% + 8px); left: 0;
+    background: white; border: 0.5px solid #dee2e6; border-radius: 10px;
+    padding: 10px; min-width: 320px; max-width: 400px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 1000;
+    display: none;
+  }
+  .uf-dropdown.open .uf-dropdown-menu { display: block; }
+
+  .uf-dropdown-search {
+    width: 100%; border: 1px solid #dee2e6; border-radius: 6px;
+    padding: 6px 10px; font-size: 12px; margin-bottom: 10px;
+    background: #f8f9fa;
+  }
+  .uf-dropdown-search:focus { outline: none; border-color: #198754; }
+
+  .uf-dropdown-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 6px; max-height: 280px; overflow-y: auto;
+  }
+  .uf-dropdown-item {
+    border: 0.5px solid #dee2e6; border-radius: 6px;
+    padding: 10px 4px; text-align: center; cursor: pointer;
+    transition: all .15s; background: white;
+  }
+  .uf-dropdown-item:hover {
+    background: #f8f9fa; border-color: #198754;
+    transform: scale(1.05);
+  }
+  .uf-dropdown-item.active {
+    background: rgba(25,135,84,.12); border-color: #198754;
+    color: #198754; font-weight: 600;
+  }
+  .uf-dropdown-sigla { font-size: 13px; font-weight: 600; display: block; }
+  .uf-dropdown-nome { font-size: 9px; color: #6c757d; margin-top: 2px; display: block; }
+
+  @media (max-width: 768px) {
+    .uf-dropdown-grid { grid-template-columns: repeat(3, 1fr); }
+    .uf-dropdown-menu { min-width: 280px; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-
-  <div id="loading-overlay">
-    <div class="text-center">
-      <div class="spinner-border text-success" role="status"></div>
-      <p class="mt-2 fw-semibold text-success">Carregando dados...</p>
-    </div>
+<div id="loading-overlay">
+  <div class="text-center">
+    <div class="spinner-border text-success" role="status"></div>
+    <p class="mt-2 fw-semibold text-success">Carregando dados...</p>
   </div>
+</div>
 
-  <div class="container py-4">
+<div class="container py-4">
 
-    <!-- Page title + year selector -->
-    <div class="d-flex align-items-center pb-3 border-bottom mb-4">
-      <div class="bg-success text-white rounded p-3 me-3">
-        <i class="bi bi-piggy-bank fs-3"></i>
-      </div>
-      <div class="flex-grow-1">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          <h2 class="fw-bold mb-0 text-success">Painel de Receitas</h2>
-          <div class="btn-group" role="group" aria-label="Selecionar ano">
-            {% for ano in anos_disponiveis %}
-            <input type="radio" class="btn-check" name="anoRadio" id="ano{{ ano }}"
-                   value="{{ ano }}" autocomplete="off"
-                   {% if ano == ano_selecionado %}checked{% endif %}>
-            <label class="btn btn-outline-success btn-sm" for="ano{{ ano }}">{{ ano }}</label>
-            {% endfor %}
-          </div>
-        </div>
-        <p class="text-muted mb-0 mt-1">Origem dos recursos e arrecadação.</p>
-      </div>
+  <!-- Cabeçalho -->
+  <div class="d-flex align-items-center pb-3 border-bottom mb-4">
+    <div class="bg-success text-white rounded p-3 me-3">
+      <i class="bi bi-piggy-bank fs-3"></i>
     </div>
+    <div class="flex-grow-1">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <h2 class="fw-bold mb-0 text-success">Painel de Receitas</h2>
 
-    <!-- Main charts row -->
-    <div class="row g-4">
-
-      <div class="col-lg-8">
-        <div class="chart-box h-100">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="card-title mb-0">Composição da Receita</h5>
-            <div class="btn-group" role="group">
-              <input type="radio" class="btn-check" name="escopoRadio" id="escopoBR" autocomplete="off" checked>
-              <label class="btn btn-outline-success btn-sm" for="escopoBR">Brasil</label>
-              <input type="radio" class="btn-check" name="escopoRadio" id="escopoSC" autocomplete="off">
-              <label class="btn btn-outline-success btn-sm" for="escopoSC">Santa Catarina</label>
-            </div>
-          </div>
-          <div class="chart-container-large">
-            <canvas id="canvasReceitaPrincipal"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-4">
-        <div class="card border-success mb-3 shadow-sm">
-          <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-muted">
-              Total Arrecadado (<span id="label-escopo">Brasil</span>)
-            </h6>
-            <h2 class="card-title text-success fw-bold" id="valor-total-display">
-              {{ total_br_txt }}
-            </h2>
-            <hr class="my-2">
-            <div class="d-flex align-items-center text-muted" style="font-size:.85rem">
-              <i class="bi bi-clock-history me-2"></i>
-              <div>
-                <span>Última coleta:</span><br>
-                <strong class="text-dark" id="data-atualizacao">{{ data_atualizacao }}</strong>
+        <!-- Seletor de UF -->
+        <div class="uf-dropdown" id="ufDropdown">
+          <button class="uf-dropdown-btn" id="ufDropdownBtn">
+            <span class="uf-dropdown-icon">🗺</span>
+            <span id="ufDropdownText">{{ uf_selecionada }}</span>
+            <span class="uf-dropdown-arrow">▾</span>
+          </button>
+          <div class="uf-dropdown-menu">
+            <input type="text" class="uf-dropdown-search" id="ufSearch" placeholder="Buscar estado..." />
+            <div class="uf-dropdown-grid" id="ufGrid">
+              {% for uf in ufs_disponiveis %}
+              <div class="uf-dropdown-item{% if uf == uf_selecionada %} active{% endif %}"
+                   data-uf="{{ uf }}"
+                   data-nome="{% if uf == 'BR' %}Brasil{% elif uf == 'AC' %}Acre{% elif uf == 'AL' %}Alagoas{% elif uf == 'AP' %}Amapá{% elif uf == 'AM' %}Amazonas{% elif uf == 'BA' %}Bahia{% elif uf == 'CE' %}Ceará{% elif uf == 'DF' %}Distrito Federal{% elif uf == 'ES' %}Espírito Santo{% elif uf == 'GO' %}Goiás{% elif uf == 'MA' %}Maranhão{% elif uf == 'MT' %}Mato Grosso{% elif uf == 'MS' %}Mato Grosso do Sul{% elif uf == 'MG' %}Minas Gerais{% elif uf == 'PA' %}Pará{% elif uf == 'PB' %}Paraíba{% elif uf == 'PR' %}Paraná{% elif uf == 'PE' %}Pernambuco{% elif uf == 'PI' %}Piauí{% elif uf == 'RJ' %}Rio de Janeiro{% elif uf == 'RN' %}Rio Grande do Norte{% elif uf == 'RS' %}Rio Grande do Sul{% elif uf == 'RO' %}Rondônia{% elif uf == 'RR' %}Roraima{% elif uf == 'SC' %}Santa Catarina{% elif uf == 'SP' %}São Paulo{% elif uf == 'SE' %}Sergipe{% elif uf == 'TO' %}Tocantins{% endif %}">
+                <span class="uf-dropdown-sigla">{{ uf }}</span>
+                <span class="uf-dropdown-nome">{% if uf == 'BR' %}Brasil{% elif uf == 'AC' %}Acre{% elif uf == 'AL' %}Alagoas{% elif uf == 'AP' %}Amapá{% elif uf == 'AM' %}Amazonas{% elif uf == 'BA' %}Bahia{% elif uf == 'CE' %}Ceará{% elif uf == 'DF' %}Distrito Federal{% elif uf == 'ES' %}Espírito Santo{% elif uf == 'GO' %}Goiás{% elif uf == 'MA' %}Maranhão{% elif uf == 'MT' %}Mato Grosso{% elif uf == 'MS' %}Mato Grosso do Sul{% elif uf == 'MG' %}Minas Gerais{% elif uf == 'PA' %}Pará{% elif uf == 'PB' %}Paraíba{% elif uf == 'PR' %}Paraná{% elif uf == 'PE' %}Pernambuco{% elif uf == 'PI' %}Piauí{% elif uf == 'RJ' %}Rio de Janeiro{% elif uf == 'RN' %}Rio Grande do Norte{% elif uf == 'RS' %}Rio Grande do Sul{% elif uf == 'RO' %}Rondônia{% elif uf == 'RR' %}Roraima{% elif uf == 'SC' %}Santa Catarina{% elif uf == 'SP' %}São Paulo{% elif uf == 'SE' %}Sergipe{% elif uf == 'TO' %}Tocantins{% endif %}</span>
               </div>
+              {% endfor %}
             </div>
           </div>
         </div>
+        <input type="hidden" id="ufSelect" value="{{ uf_selecionada }}" />
 
-        <div class="chart-box mt-4">
-          <h5 class="card-title mb-3">Proporção por Esfera</h5>
-          <div class="chart-container-small">
-            <canvas id="canvasReceitaEsfera"></canvas>
-          </div>
+        <!-- Seletor de ano -->
+        <div class="btn-group" role="group">
+          {% for ano in anos_disponiveis %}
+          <input type="radio" class="btn-check" name="anoRadio" id="ano{{ ano }}"
+                 value="{{ ano }}" autocomplete="off" {% if ano == ano_selecionado %}checked{% endif %}>
+          <label class="btn btn-outline-success btn-sm" for="ano{{ ano }}">{{ ano }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      <p class="text-muted mb-0 mt-1">Origem dos recursos e arrecadação.</p>
+    </div>
+  </div>
+
+  <!-- Gráficos principais -->
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="chart-box h-100">
+        <h5 class="card-title mb-4">Composição da Receita — <span id="label-uf">{{ uf_selecionada }}</span></h5>
+        <div class="chart-container-large">
+          <canvas id="canvasReceitaPrincipal"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- Historical trend -->
-    <div class="mt-4 chart-box">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Evolução Histórica — Total Arrecadado</h5>
-        <span class="badge bg-success">Série temporal</span>
+    <div class="col-lg-4">
+      <div class="card border-success mb-3 shadow-sm">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-muted">Total Arrecadado — <span id="label-escopo">{{ uf_selecionada }}</span></h6>
+          <h2 class="card-title text-success fw-bold" id="valor-total-display">{{ total_uf_txt }}</h2>
+          <hr class="my-2">
+          <div class="d-flex align-items-start text-muted" style="font-size:.85rem">
+            <i class="bi bi-info-circle me-2 mt-1"></i>
+            <div>
+              <span>Referência nacional:</span><br>
+              <strong class="text-dark" id="valor-br-ref">{{ total_br_txt }}</strong>
+            </div>
+          </div>
+          <hr class="my-2">
+          <div class="d-flex align-items-center text-muted" style="font-size:.85rem">
+            <i class="bi bi-clock-history me-2"></i>
+            <div>
+              <span>Última coleta:</span><br>
+              <strong class="text-dark" id="data-atualizacao">{{ data_atualizacao }}</strong>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="chart-container-trend">
-        <canvas id="canvasReceitaTrend"></canvas>
+
+      <div class="chart-box mt-4">
+        <h5 class="card-title mb-3">Proporção UF × Federal</h5>
+        <div class="chart-container-small">
+          <canvas id="canvasReceitaEsfera"></canvas>
+        </div>
       </div>
     </div>
-
-    <!-- Detail table -->
-    <div class="mt-4 bg-white p-4 rounded shadow-sm">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Detalhamento Completo (<span id="label-tabela">Brasil</span>)</h5>
-        <span class="badge bg-secondary">Base: {{ data_atualizacao }}</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Fonte / Origem</th>
-              <th class="text-end">Valor (R$)</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-tabela">
-            {% if lista_dados_br %}
-              {% for item in lista_dados_br %}
-              <tr>
-                <td>{{ item['ORIGEM RECEITA'] }}</td>
-                <td class="text-end font-monospace">{{ item['VALOR REALIZADO'] | format_brl }}</td>
-              </tr>
-              {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
+  <!-- Série histórica -->
+  <div class="mt-4 chart-box">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Evolução Histórica — Total Arrecadado</h5>
+      <span class="badge bg-success">Série temporal</span>
+    </div>
+    <div class="chart-container-trend">
+      <canvas id="canvasReceitaTrend"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabela detalhada -->
+  <div class="mt-4 bg-white p-4 rounded shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Detalhamento — <span id="label-tabela">{{ uf_selecionada }}</span></h5>
+      <span class="badge bg-secondary">Base: {{ data_atualizacao }}</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr><th>Fonte / Origem</th><th class="text-end">Valor (R$)</th></tr>
+        </thead>
+        <tbody id="tbody-tabela">
+          {% for item in lista_dados_uf %}
+          <tr>
+            <td>{{ item['ORIGEM RECEITA'] }}</td>
+            <td class="text-end font-monospace">{{ item['VALOR REALIZADO'] | format_brl }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  // ============================================================================
+  // DROPDOWN UF CUSTOMIZADO
+  // ============================================================================
+  (function() {
+    const dropdown = document.getElementById('ufDropdown');
+    const btn = document.getElementById('ufDropdownBtn');
+    const text = document.getElementById('ufDropdownText');
+    const search = document.getElementById('ufSearch');
+    const grid = document.getElementById('ufGrid');
+    const hiddenInput = document.getElementById('ufSelect');
+
+    const UF_NOMES = {
+      'BR':'Brasil','AC':'Acre','AL':'Alagoas','AP':'Amapá','AM':'Amazonas',
+      'BA':'Bahia','CE':'Ceará','DF':'Distrito Federal','ES':'Espírito Santo',
+      'GO':'Goiás','MA':'Maranhão','MT':'Mato Grosso','MS':'Mato Grosso do Sul',
+      'MG':'Minas Gerais','PA':'Pará','PB':'Paraíba','PR':'Paraná','PE':'Pernambuco',
+      'PI':'Piauí','RJ':'Rio de Janeiro','RN':'Rio Grande do Norte','RS':'Rio Grande do Sul',
+      'RO':'Rondônia','RR':'Roraima','SC':'Santa Catarina','SP':'São Paulo',
+      'SE':'Sergipe','TO':'Tocantins'
+    };
+
+    // Toggle dropdown
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+      if (dropdown.classList.contains('open')) {
+        search.focus();
+      }
+    });
+
+    // Fechar ao clicar fora
+    document.addEventListener('click', function() {
+      dropdown.classList.remove('open');
+    });
+
+    dropdown.querySelector('.uf-dropdown-menu').addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+
+    // Busca
+    search.addEventListener('input', function() {
+      const termo = this.value.toLowerCase();
+      const items = grid.querySelectorAll('.uf-dropdown-item');
+      items.forEach(function(item) {
+        const uf = item.dataset.uf.toLowerCase();
+        const nome = item.dataset.nome.toLowerCase();
+        if (uf.includes(termo) || nome.includes(termo)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+
+    // Selecionar UF
+    grid.addEventListener('click', function(e) {
+      const item = e.target.closest('.uf-dropdown-item');
+      if (!item) return;
+
+      const uf = item.dataset.uf;
+      const nome = item.dataset.nome;
+
+      // Atualizar visualmente
+      grid.querySelectorAll('.uf-dropdown-item').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      item.classList.add('active');
+
+      // Atualizar texto do botão
+      text.textContent = nome + ' (' + uf + ')';
+
+      // Atualizar hidden input e disparar change
+      hiddenInput.value = uf;
+      const event = new Event('change', { bubbles: true });
+      hiddenInput.dispatchEvent(event);
+
+      // Fechar dropdown
+      dropdown.classList.remove('open');
+      search.value = '';
+      grid.querySelectorAll('.uf-dropdown-item').forEach(function(el) {
+        el.style.display = '';
+      });
+    });
+
+    // Inicializar texto do botão
+    const ufInicial = hiddenInput.value;
+    text.textContent = UF_NOMES[ufInicial] + ' (' + ufInicial + ')';
+  })();
+
+  // ============================================================================
+  // CHART.JS SETUP
+  // ============================================================================
   Chart.defaults.font.family = "'Segoe UI', Roboto, sans-serif";
   Chart.defaults.color = "#6c757d";
-
   const PALETTE = ['#198754','#20c997','#0dcaf0','#0d6efd','#6610f2','#d63384','#ffc107','#6c757d'];
 
   let state = {
-    scope: 'br',
-    year:  {{ ano_selecionado }},
-    data: {
-      br: {
-        labels:    {{ labels_br    | tojson | safe }},
-        values:    {{ values_br    | tojson | safe }},
-        total_txt: "{{ total_br_txt }}",
-        tabela:    {{ lista_dados_br | tojson | safe }}
-      },
-      sc: {
-        labels:    {{ labels_sc    | tojson | safe }},
-        values:    {{ values_sc    | tojson | safe }},
-        total_txt: "{{ total_sc_txt }}",
-        tabela:    {{ lista_dados_sc | tojson | safe }}
-      },
-      esfera:           {{ values_esfera | tojson | safe }},
-      data_atualizacao: "{{ data_atualizacao }}"
-    }
+    uf:   "{{ uf_selecionada }}",
+    year: {{ ano_selecionado }},
+    uf_data: {
+      labels:    {{ labels_uf    | tojson | safe }},
+      values:    {{ values_uf    | tojson | safe }},
+      total_txt: "{{ total_uf_txt }}",
+      tabela:    {{ lista_dados_uf | tojson | safe }}
+    },
+    total_br:     {{ total_br | default(0) }},
+    total_br_txt: "{{ total_br_txt }}",
+    data_atualizacao: "{{ data_atualizacao }}"
   };
 
   let mainChart = null, esferaChart = null, trendChart = null;
 
-  function formatBRL(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
+  const fmt = v => v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 
   function initMainChart() {
     const ctx = document.getElementById('canvasReceitaPrincipal');
     if (!ctx) return;
-    const d = state.data[state.scope];
     mainChart = new Chart(ctx, {
       type: 'doughnut',
-      data: {
-        labels: d.labels,
-        datasets: [{ data: d.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '65%',
-        plugins: {
-          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } },
-          tooltip: { callbacks: { label: ctx => ' ' + formatBRL(ctx.raw) } }
-        }
-      }
+      data: { labels: state.uf_data.labels, datasets: [{ data: state.uf_data.values, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
+        plugins: { legend:{position:'bottom', labels:{usePointStyle:true, boxWidth:10}}, tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}} } }
     });
   }
 
-  function initEsferaChart() {
+  function initEsferaChart(ufVal, brVal) {
     const ctx = document.getElementById('canvasReceitaEsfera');
     if (!ctx) return;
+    if (esferaChart) esferaChart.destroy();
     esferaChart = new Chart(ctx, {
       type: 'pie',
-      data: {
-        labels: ['Total Brasil', 'Total SC'],
-        datasets: [{ data: state.data.esfera, backgroundColor: ['#0d6efd','#198754'], borderWidth: 2, borderColor: '#fff' }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      data: { labels: [state.uf, 'Brasil (Federal)'], datasets: [{ data: [ufVal, brVal], backgroundColor: ['#198754','#0d6efd'], borderWidth:2, borderColor:'#fff' }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
     });
   }
 
-  function initTrendChart(anos, br, sc) {
+  function initTrendChart(anos, br, uf, ufLabel) {
     const ctx = document.getElementById('canvasReceitaTrend');
     if (!ctx) return;
     if (trendChart) trendChart.destroy();
     trendChart = new Chart(ctx, {
       type: 'bar',
-      data: {
-        labels: anos,
-        datasets: [
-          { label: 'Brasil', data: br, backgroundColor: 'rgba(13,110,253,0.7)', borderColor: '#0d6efd', borderWidth: 1, borderRadius: 4 },
-          { label: 'Santa Catarina', data: sc, backgroundColor: 'rgba(25,135,84,0.7)', borderColor: '#198754', borderWidth: 1, borderRadius: 4 }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top' },
-          tooltip: { callbacks: { label: ctx => ' ' + formatBRL(ctx.raw) } }
-        },
-        scales: {
-          y: { ticks: { callback: v => {
-            if (v >= 1e12) return 'R$ ' + (v/1e12).toFixed(1) + ' Tri';
-            if (v >= 1e9)  return 'R$ ' + (v/1e9).toFixed(1) + ' Bi';
-            if (v >= 1e6)  return 'R$ ' + (v/1e6).toFixed(1) + ' Mi';
-            return 'R$ ' + v;
-          }}}
-        }
+      data: { labels: anos, datasets: [
+        { label:'Brasil (Federal)', data:br, backgroundColor:'rgba(13,110,253,.7)', borderColor:'#0d6efd', borderWidth:1, borderRadius:4 },
+        { label:ufLabel,           data:uf, backgroundColor:'rgba(25,135,84,.7)',  borderColor:'#198754', borderWidth:1, borderRadius:4 }
+      ]},
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{position:'top'}, tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}} },
+        scales:{ y:{ ticks:{ callback: v => {
+          if(v>=1e12) return 'R$ '+(v/1e12).toFixed(1)+' Tri';
+          if(v>=1e9)  return 'R$ '+(v/1e9).toFixed(1)+' Bi';
+          if(v>=1e6)  return 'R$ '+(v/1e6).toFixed(1)+' Mi';
+          return 'R$ '+v;
+        }}}}
       }
     });
   }
 
   function updateUI() {
-    const d = state.data[state.scope];
-    const scopeLabel = state.scope === 'br' ? 'Brasil' : 'Santa Catarina';
-
-    document.getElementById('label-escopo').innerText = scopeLabel;
-    document.getElementById('label-tabela').innerText = scopeLabel;
-    document.getElementById('valor-total-display').innerText = d.total_txt;
-    document.getElementById('data-atualizacao').innerText = state.data.data_atualizacao;
+    document.getElementById('label-uf').innerText     = state.uf;
+    document.getElementById('label-escopo').innerText = state.uf;
+    document.getElementById('label-tabela').innerText = state.uf;
+    document.getElementById('valor-total-display').innerText = state.uf_data.total_txt;
+    document.getElementById('data-atualizacao').innerText    = state.data_atualizacao;
 
     if (mainChart) {
-      mainChart.data.labels = d.labels;
-      mainChart.data.datasets[0].data = d.values;
+      mainChart.data.labels = state.uf_data.labels;
+      mainChart.data.datasets[0].data = state.uf_data.values;
       mainChart.update();
-    }
-    if (esferaChart) {
-      esferaChart.data.datasets[0].data = state.data.esfera;
-      esferaChart.update();
     }
 
     const tbody = document.getElementById('tbody-tabela');
     tbody.innerHTML = '';
-    (d.tabela || []).forEach(item => {
+    (state.uf_data.tabela || []).forEach(item => {
       const tr = document.createElement('tr');
-      const tdNome = document.createElement('td');
-      tdNome.textContent = item['ORIGEM RECEITA'] || item['nmorigem'] || item.nome || '—';
-      const tdValor = document.createElement('td');
-      tdValor.className = 'text-end font-monospace';
-      const raw = item['VALOR REALIZADO'] ?? item['vlreceitarealizadaliquida'] ?? item.valor ?? 0;
-      tdValor.textContent = formatBRL(parseFloat(raw) || 0);
-      tr.appendChild(tdNome);
-      tr.appendChild(tdValor);
+      tr.innerHTML = `<td>${item['ORIGEM RECEITA'] || item.nome || '—'}</td>
+                      <td class="text-end font-monospace">${fmt(parseFloat(item['VALOR REALIZADO'] ?? item.valor ?? 0))}</td>`;
       tbody.appendChild(tr);
     });
   }
 
-  function fetchYear(year) {
+  function fetchData(year, uf) {
     document.getElementById('loading-overlay').classList.add('active');
-    fetch(`/api/receitas?ano=${year}`)
+    fetch(`/api/receitas?ano=${year}&uf=${uf}`)
       .then(r => r.json())
       .then(json => {
-        state.year = year;
-        state.data = { br: json.br, sc: json.sc, esfera: json.esfera, data_atualizacao: json.data_atualizacao };
+        state.year             = json.ano;
+        state.uf               = json.uf;
+        state.uf_data          = json.uf_data;
+        state.total_br         = json.total_br;
+        state.total_br_txt     = json.total_br_txt;
+        state.data_atualizacao = json.data_atualizacao;
+        document.getElementById('valor-br-ref').innerText = json.total_br_txt;
+        initEsferaChart(json.uf_data.total, json.total_br);
         updateUI();
+        fetchTrend();
       })
       .catch(err => console.error('Erro:', err))
       .finally(() => document.getElementById('loading-overlay').classList.remove('active'));
   }
 
   function fetchTrend() {
-    fetch('/api/historico/receitas')
+    fetch(`/api/historico/receitas?uf=${state.uf}`)
       .then(r => r.json())
-      .then(json => initTrendChart(json.anos, json.br, json.sc))
+      .then(json => initTrendChart(json.anos, json.br, json.uf, json.uf_label))
       .catch(err => console.error('Erro histórico:', err));
   }
 
-  document.querySelectorAll('input[name="anoRadio"]').forEach(radio => {
-    radio.addEventListener('change', function () {
-      if (parseInt(this.value) !== state.year) fetchYear(parseInt(this.value));
-    });
-  });
-  document.getElementById('escopoBR').addEventListener('change', function () {
-    if (this.checked) { state.scope = 'br'; updateUI(); }
-  });
-  document.getElementById('escopoSC').addEventListener('change', function () {
-    if (this.checked) { state.scope = 'sc'; updateUI(); }
+  document.getElementById('ufSelect').addEventListener('change', function() {
+    state.uf = this.value;
+    fetchData(state.year, state.uf);
   });
 
-  document.addEventListener('DOMContentLoaded', function () {
-    initMainChart();
-    initEsferaChart();
-    fetchTrend();
+  document.querySelectorAll('input[name="anoRadio"]').forEach(r => {
+    r.addEventListener('change', function() {
+      if (parseInt(this.value) !== state.year) fetchData(parseInt(this.value), state.uf);
+    });
   });
+
+  // Script está no fim do <body> — DOM já está pronto; DOMContentLoaded
+  // pode não disparar novamente. Inicializa diretamente.
+  initMainChart();
+  const ufTotalInicial = state.uf_data.values.reduce((a, b) => a + b, 0);
+  initEsferaChart(ufTotalInicial, state.total_br);
+  fetchTrend();
 </script>
 {% endblock %}
